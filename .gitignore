@@ -1,0 +1,27 @@
+# Secrets — never commit these
+.env
+credentials.json
+token.pickle
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Database & backups
+db/crm.db
+db/crm_backup_*.db
+
+# Logs & generated files
+logs/
+proposals/
+
+# OS
+.DS_Store
+Thumbs.db

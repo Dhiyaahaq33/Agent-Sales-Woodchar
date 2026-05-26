@@ -1,0 +1,41 @@
+COMMERCIAL QUOTATION
+====================
+Reference  : {quote_ref}
+Date       : {date}
+Valid Until: {valid_until}
+
+FROM:
+{company_name}
+Charcoal Export Division — Indonesia
+Email: {company_email}
+
+TO:
+{buyer_company}
+{buyer_country}
+
+---
+
+Dear Sir/Madam,
+
+{cover_paragraph}
+
+PRODUCTS & PRICING
+------------------
+{product_table}
+
+TERMS & CONDITIONS
+------------------
+• Payment  : T/T — 30% deposit, 70% before shipment; or L/C at sight
+• Delivery : FOB Indonesian Port (Tanjung Priok / Banjarmasin)
+• Lead Time: 14–21 working days after order confirmation + deposit
+• Inspection: SGS / Sucofindo pre-shipment inspection available on request
+• Validity : This quotation is valid for 30 days from the date above
+
+---
+
+Sincerely,
+{sender_name}
+{company_name}
+{company_email}
+
+To unsubscribe from our communications, reply with 'UNSUBSCRIBE' in the subject line.

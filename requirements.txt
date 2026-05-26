@@ -1,0 +1,12 @@
+crewai
+google-generativeai
+google-auth-oauthlib
+google-api-python-client
+requests
+beautifulsoup4
+lxml
+apscheduler
+python-dotenv
+reportlab
+fake-useragent
+googlesearch-python

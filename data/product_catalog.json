@@ -1,0 +1,66 @@
+{
+  "company": "PT Ekspor Arang",
+  "last_updated": "2026-05-26",
+  "products": [
+    {
+      "name": "Coconut Shell Charcoal",
+      "grade": "Premium Export",
+      "moq_mt": 10,
+      "price_usd_per_mt": 520,
+      "packaging": "10kg PP Woven Bags / 20kg Sacks",
+      "moisture_max_pct": 5,
+      "ash_max_pct": 3,
+      "fixed_carbon_min_pct": 78,
+      "calorific_value_kcal_kg": 7200,
+      "size_mm": "20-80",
+      "markets": ["Japan", "South Korea", "Germany", "Netherlands"],
+      "notes": "Best seller for BBQ / restaurant use"
+    },
+    {
+      "name": "Hardwood Lump Charcoal",
+      "grade": "A",
+      "moq_mt": 20,
+      "price_usd_per_mt": 380,
+      "packaging": "25kg Woven Bags / Bulk Container",
+      "moisture_max_pct": 8,
+      "ash_max_pct": 5,
+      "fixed_carbon_min_pct": 72,
+      "calorific_value_kcal_kg": 6800,
+      "size_mm": "40-120",
+      "markets": ["UAE", "Saudi Arabia", "Qatar", "India"],
+      "notes": "Popular for shisha / hookah cafes and industrial use"
+    },
+    {
+      "name": "Charcoal Briquette (Pillow)",
+      "grade": "BBQ Standard",
+      "moq_mt": 15,
+      "price_usd_per_mt": 430,
+      "packaging": "3kg / 5kg Retail Bags, Mastercase 20kg",
+      "moisture_max_pct": 6,
+      "ash_max_pct": 8,
+      "fixed_carbon_min_pct": 65,
+      "calorific_value_kcal_kg": 6200,
+      "size_mm": "pillow 30x50mm",
+      "markets": ["Europe", "North America", "Australia"],
+      "notes": "Ready-to-retail packaging available"
+    },
+    {
+      "name": "Activated Charcoal (Industrial)",
+      "grade": "Industrial Grade",
+      "moq_mt": 5,
+      "price_usd_per_mt": 850,
+      "packaging": "25kg Kraft Paper Bags",
+      "moisture_max_pct": 5,
+      "ash_max_pct": 4,
+      "fixed_carbon_min_pct": 85,
+      "calorific_value_kcal_kg": 7500,
+      "size_mm": "powder / granule 1-4mm",
+      "markets": ["Germany", "Netherlands", "South Korea"],
+      "notes": "Water treatment, air purification, food processing"
+    }
+  ],
+  "payment_terms": ["T/T 30/70", "L/C at sight", "D/P"],
+  "certifications": ["SGS", "Sucofindo", "PHYTOSANITARY"],
+  "ports": ["Tanjung Priok (Jakarta)", "Banjarmasin (Kalimantan)", "Surabaya"],
+  "lead_time_days": "14-21"
+}
