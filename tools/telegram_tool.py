@@ -1,17 +1,27 @@
-"""Telegram Bot v2 — two-way command interface + notification sender.
+"""Telegram Bot v2.1 — two-way command interface + notification sender.
 
 Commands supported (COO sends to bot):
-  /stats      — summary hari ini
-  /leads [N]  — N leads terbaru
-  /interested — semua INTERESTED leads
-  /pipeline   — full funnel
-  /product [nama] — info produk dari catalog
-  /stop       — pause semua agent
-  /start      — resume semua agent
-  /errors     — error log 24 jam terakhir
-  /weekly     — report mingguan
-  /approve [id] — approve negotiation draft
-  /reject  [id] — reject negotiation draft
+  /stats              — summary hari ini
+  /leads [N]          — N leads terbaru
+  /interested         — semua INTERESTED leads
+  /pipeline           — full funnel
+  /product [nama]     — info produk dari catalog
+  /stop               — pause semua agent
+  /start              — resume semua agent
+  /errors             — error log 24 jam terakhir
+  /weekly             — report mingguan
+  /approve [id]       — approve negotiation draft
+  /reject [id]        — reject negotiation draft
+  --- v2.1 ---
+  /preview [id]       — preview negotiation draft sebelum approve
+  /edit [id] [teks]   — edit draft negotiation
+  /regenerate [id]    — regenerate draft with LLM
+  /samples            — sample pipeline stats
+  /close [id] [value] — close deal: lead_id + nilai USD
+  /risk [CC]          — country risk check (e.g. /risk IN)
+  /match [reply] [lead] — manually match reply to lead
+  /warmup             — warmup status
+  /health             — system health status
 """
 import json
 import logging
@@ -106,17 +116,18 @@ def _handle_stats() -> str:
 
 
 def _handle_leads(n: int = 10) -> str:
-    import db.database as db
     from db.database import get_conn
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT company_name, country, status, score FROM leads ORDER BY id DESC LIMIT ?",
+            "SELECT company, country, status, score FROM leads ORDER BY id DESC LIMIT ?",
             (n,)
         ).fetchall()
     if not rows:
         return "📭 Belum ada leads di database."
-    lines = [f"`{r['status']:10}` | {r['score']:3} | {r['company_name']} ({r['country']})"
-             for r in rows]
+    lines = [
+        f"`{r['status']:10}` | {r['score']:3} | {r['company']} ({r['country']})"
+        for r in rows
+    ]
     return f"📋 *{n} Leads Terbaru*\n" + "\n".join(lines)
 
 
@@ -262,6 +273,195 @@ def _handle_reject(negotiation_id: str) -> str:
         return f"❌ Reject failed: {exc}"
 
 
+# ── v2.1 Command Handlers ─────────────────────────────────────────────────────
+
+def _handle_preview(negotiation_id: str) -> str:
+    """Preview a negotiation draft without approving it."""
+    try:
+        nid = int(negotiation_id)
+        from db.database import get_conn
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM negotiation_log WHERE id=?", (nid,)
+            ).fetchone()
+        if not row:
+            return f"❌ Negotiation ID {nid} tidak ditemukan."
+        return (
+            f"👁️ *Preview Negotiation #{nid}*\n"
+            f"Status: `{row['status']}`\n"
+            f"Lead ID: {row['lead_id']}\n\n"
+            f"*Subject:* {row.get('subject', 'N/A')}\n\n"
+            f"```\n{str(row.get('draft_body', ''))[:1000]}\n```\n\n"
+            f"Reply `/approve {nid}` to send | `/reject {nid}` to discard | "
+            f"`/edit {nid} [text]` to edit"
+        )
+    except Exception as exc:
+        return f"❌ Preview failed: {exc}"
+
+
+def _handle_edit(negotiation_id: str, new_text: str) -> str:
+    """Edit an existing negotiation draft body."""
+    try:
+        nid = int(negotiation_id)
+        from db.database import get_conn
+        with get_conn() as conn:
+            conn.execute(
+                "UPDATE negotiation_log SET draft_body=? WHERE id=? AND status='PENDING'",
+                (new_text, nid)
+            )
+        return (
+            f"✏️ Negotiation #{nid} updated.\n"
+            f"Preview: `/preview {nid}` | Approve: `/approve {nid}`"
+        )
+    except Exception as exc:
+        return f"❌ Edit failed: {exc}"
+
+
+def _handle_regenerate(negotiation_id: str) -> str:
+    """Regenerate a negotiation draft using LLM."""
+    try:
+        nid = int(negotiation_id)
+        from db.database import get_conn
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM negotiation_log WHERE id=?", (nid,)
+            ).fetchone()
+        if not row:
+            return f"❌ Negotiation ID {nid} tidak ditemukan."
+        from tools.llm_router import call as llm_call
+        prompt = (
+            f"Regenerate this sales negotiation email for charcoal export. "
+            f"Lead ID: {row['lead_id']}. Original draft:\n{row.get('draft_body', '')}\n\n"
+            f"Make it more compelling, professional, and concise. "
+            f"Keep the same information but improve the tone."
+        )
+        new_draft = llm_call(prompt)
+        from db.database import get_conn
+        with get_conn() as conn:
+            conn.execute(
+                "UPDATE negotiation_log SET draft_body=? WHERE id=?",
+                (new_draft, nid)
+            )
+        return (
+            f"🔄 Negotiation #{nid} regenerated.\n"
+            f"Preview: `/preview {nid}` | Approve: `/approve {nid}`"
+        )
+    except Exception as exc:
+        return f"❌ Regenerate failed: {exc}"
+
+
+def _handle_samples() -> str:
+    """Show sample pipeline statistics."""
+    try:
+        from tools.sample_tracker import SampleTracker
+        tracker = SampleTracker()
+        return tracker.format_stats_for_telegram()
+    except Exception as exc:
+        return f"❌ Sample stats failed: {exc}"
+
+
+def _handle_close(lead_id: str, deal_value: str) -> str:
+    """Mark a lead as closed with deal value."""
+    try:
+        lid = int(lead_id)
+        value = float(deal_value.replace("$", "").replace(",", ""))
+        from datetime import date
+        from db.database import get_conn
+        with get_conn() as conn:
+            conn.execute(
+                """UPDATE leads
+                   SET status='CLOSED',
+                       deal_closed_date=?,
+                       deal_value_usd=?,
+                       estimated_deal_value_usd=?
+                   WHERE id=?""",
+                (date.today().isoformat(), value, value, lid)
+            )
+            row = conn.execute("SELECT company FROM leads WHERE id=?", (lid,)).fetchone()
+        company = row["company"] if row else f"Lead {lid}"
+        return (
+            f"🎉 *DEAL CLOSED!*\n"
+            f"Company: {company}\n"
+            f"Value: *${value:,.0f} USD*\n"
+            f"Date: {date.today().isoformat()}\n\n"
+            f"Reorder sequence will trigger in 30 days 📅"
+        )
+    except Exception as exc:
+        return f"❌ Close deal failed: {exc}"
+
+
+def _handle_risk(country_code: str) -> str:
+    """Check country payment risk."""
+    if not country_code:
+        return "Usage: /risk [country code] — e.g. /risk IN"
+    try:
+        from tools.country_risk import get_country_risk
+        cr = get_country_risk()
+        return cr.format_risk_for_telegram(country_code.upper())
+    except Exception as exc:
+        return f"❌ Country risk check failed: {exc}"
+
+
+def _handle_match(reply_id: str, lead_id: str) -> str:
+    """Manually match an unmatched reply to a lead."""
+    try:
+        rid = int(reply_id)
+        lid = int(lead_id)
+        from db.database import get_conn
+        with get_conn() as conn:
+            conn.execute(
+                "UPDATE outreach SET lead_id=?, match_confidence='MANUAL' WHERE id=?",
+                (lid, rid)
+            )
+            conn.execute(
+                "UPDATE leads SET status='REPLIED' WHERE id=? AND status='OUTREACH'",
+                (lid,)
+            )
+        return f"✅ Reply {rid} matched to Lead {lid} (MANUAL)"
+    except Exception as exc:
+        return f"❌ Match failed: {exc}"
+
+
+def _handle_warmup() -> str:
+    """Show email warmup status."""
+    try:
+        from tools.warmup_manager import get_warmup_manager
+        wm = get_warmup_manager()
+        s = wm.get_status()
+        icon = "🔥" if s["warmup_active"] else "🚀"
+        return (
+            f"{icon} *Email Warmup Status*\n\n"
+            f"Mode: {'ACTIVE' if s['warmup_active'] else 'Disabled (full speed)'}\n"
+            f"Phase: {s['phase']}\n"
+            f"Daily limit: {s['daily_limit']}/day\n"
+            f"Sent today: {s['sent_today']}\n"
+            f"Remaining: {s['remaining_today']}\n"
+            f"Start date: {s['start_date']}"
+        )
+    except Exception as exc:
+        return f"❌ Warmup status failed: {exc}"
+
+
+def _handle_health() -> str:
+    """Show system health status."""
+    try:
+        from tools.health_check import _get_health_data
+        d = _get_health_data()
+        icon = "✅" if d["status"] == "ok" else "⚠️"
+        return (
+            f"{icon} *System Health*\n\n"
+            f"Status: `{d['status']}`\n"
+            f"DB: `{d['db']}`\n"
+            f"Leads total: {d['leads_total']}\n"
+            f"Leads interested: {d['leads_interested']}\n"
+            f"Sent today: {d['sent_today']}\n"
+            f"Warmup limit: {d['warmup_limit']}/day\n"
+            f"Timestamp: {d['timestamp']}"
+        )
+    except Exception as exc:
+        return f"❌ Health check failed: {exc}"
+
+
 # ── Command dispatcher ────────────────────────────────────────────────────────
 
 def _dispatch_command(text: str) -> str:
@@ -300,10 +500,38 @@ def _dispatch_command(text: str) -> str:
         return _handle_approve(arg)
     elif cmd == "/reject":
         return _handle_reject(arg)
+    # ── v2.1 commands ──────────────────────────────────────────────────────────
+    elif cmd == "/preview":
+        return _handle_preview(arg)
+    elif cmd == "/edit":
+        parts2 = arg.split(maxsplit=1)
+        if len(parts2) < 2:
+            return "Usage: /edit [negotiation_id] [new text]"
+        return _handle_edit(parts2[0], parts2[1])
+    elif cmd == "/regenerate":
+        return _handle_regenerate(arg)
+    elif cmd == "/samples":
+        return _handle_samples()
+    elif cmd == "/close":
+        parts2 = arg.split(maxsplit=1)
+        if len(parts2) < 2:
+            return "Usage: /close [lead_id] [deal_value_usd]"
+        return _handle_close(parts2[0], parts2[1])
+    elif cmd == "/risk":
+        return _handle_risk(arg)
+    elif cmd == "/match":
+        parts2 = arg.split(maxsplit=1)
+        if len(parts2) < 2:
+            return "Usage: /match [reply_outreach_id] [lead_id]"
+        return _handle_match(parts2[0], parts2[1])
+    elif cmd == "/warmup":
+        return _handle_warmup()
+    elif cmd == "/health":
+        return _handle_health()
     else:
         return (
-            "🤖 *Cahaya Woodchar Bot*\n\n"
-            "Commands:\n"
+            "🤖 *Cahaya Woodchar Bot v2.1*\n\n"
+            "*Basic Commands:*\n"
             "/stats — stats hari ini\n"
             "/leads [N] — N leads terbaru\n"
             "/interested — INTERESTED leads\n"
@@ -314,7 +542,17 @@ def _dispatch_command(text: str) -> str:
             "/errors — error log\n"
             "/weekly — report mingguan\n"
             "/approve [id] — approve negosiasi\n"
-            "/reject [id] — reject negosiasi"
+            "/reject [id] — reject negosiasi\n\n"
+            "*v2.1 Commands:*\n"
+            "/preview [id] — preview draft\n"
+            "/edit [id] [teks] — edit draft\n"
+            "/regenerate [id] — regenerate draft\n"
+            "/samples — sample pipeline\n"
+            "/close [id] [usd] — close deal\n"
+            "/risk [CC] — country risk (e.g. /risk IN)\n"
+            "/match [reply\\_id] [lead\\_id] — manual match\n"
+            "/warmup — warmup status\n"
+            "/health — system health"
         )
 
 

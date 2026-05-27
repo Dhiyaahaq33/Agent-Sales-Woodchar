@@ -1,4 +1,4 @@
-"""Configuration v2.0 — loads all .env variables with startup validation.
+"""Configuration v2.1 — loads all .env variables with startup validation.
 
 PT Cahaya Woodchar International — AI Sales Agent System
 """
@@ -27,23 +27,34 @@ GROQ_MODEL      = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 # ── Gmail ─────────────────────────────────────────────────────────────────────
 GMAIL_ADDRESS          = os.getenv("GMAIL_ADDRESS", "")
 GMAIL_APP_PASSWORD     = os.getenv("GMAIL_APP_PASSWORD", "")
+GMAIL_USER             = os.getenv("GMAIL_USER", GMAIL_ADDRESS)   # alias
 GMAIL_CREDENTIALS_JSON = os.getenv("GMAIL_CREDENTIALS_JSON", "credentials.json")
+GMAIL_ACCOUNTS         = os.getenv("GMAIL_ACCOUNTS", "")           # v2.1: multi-account rotation
 
 # ── Telegram ──────────────────────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # ── Company ───────────────────────────────────────────────────────────────────
-COMPANY_NAME  = os.getenv("COMPANY_NAME", "PT Cahaya Woodchar International")
-COMPANY_EMAIL = os.getenv("COMPANY_EMAIL", "")
-SENDER_NAME   = os.getenv("SENDER_NAME", "Muhammad Yahya")
+COMPANY_NAME     = os.getenv("COMPANY_NAME", "PT Cahaya Woodchar International")
+COMPANY_EMAIL    = os.getenv("COMPANY_EMAIL", "johanneshaq@indonesiancharcoalsupplier.com")
+COMPANY_WEBSITE  = os.getenv("COMPANY_WEBSITE", "https://indonesiancharcoalsupplier.com")
+SENDER_NAME      = os.getenv("SENDER_NAME", "Muhammad Yahya")
+COO_NAME         = os.getenv("COO_NAME", "Muhammad Yahya")
+COO_EMAIL        = os.getenv("COO_EMAIL", COMPANY_EMAIL)
 COMPANY_LOCATION = os.getenv("COMPANY_LOCATION", "Lampung Utara, Lampung, Indonesia")
+WA_NUMBER_1      = os.getenv("WA_NUMBER_1", "+62 895 0481 5988")
+WA_NUMBER_2      = os.getenv("WA_NUMBER_2", "+62 812 2564 6585")
+WA_NUMBER_3      = os.getenv("WA_NUMBER_3", "+62 812 2464 6585")
 
 # ── Database ──────────────────────────────────────────────────────────────────
 DB_PATH = os.getenv("DB_PATH", str(DB_DIR / "crm.db"))
 
 # ── External APIs ─────────────────────────────────────────────────────────────
 EXCHANGERATE_API_KEY = os.getenv("EXCHANGERATE_API_KEY", "")
+YOUTUBE_API_KEY      = os.getenv("YOUTUBE_API_KEY", "")        # v2.1: YouTube Data API
+BITLY_ACCESS_TOKEN   = os.getenv("BITLY_ACCESS_TOKEN", "")     # v2.1: link tracking
+TIKTOK_MS_TOKEN      = os.getenv("TIKTOK_MS_TOKEN", "")        # v2.1: TikTok session token
 
 # ── Gmail SMTP ────────────────────────────────────────────────────────────────
 SMTP_HOST = "smtp.gmail.com"
@@ -68,6 +79,29 @@ AB_TEST_PERCENTAGE       = int(os.getenv("AB_TEST_PERCENTAGE", "20"))
 MAX_EMAILS_PER_DOMAIN    = int(os.getenv("MAX_EMAILS_PER_DOMAIN", "3"))
 BOUNCE_RATE_THRESHOLD    = float(os.getenv("BOUNCE_RATE_THRESHOLD", "5.0"))
 
+# ── Feature Flags (v2.1) ──────────────────────────────────────────────────────
+WARMUP_MODE              = os.getenv("WARMUP_MODE", "false").lower() == "true"
+WARMUP_START_DATE        = os.getenv("WARMUP_START_DATE", "")
+SOCIAL_SCRAPING_ENABLED  = os.getenv("SOCIAL_SCRAPING_ENABLED", "false").lower() == "true"
+SOCIAL_YOUTUBE_ENABLED   = os.getenv("SOCIAL_YOUTUBE_ENABLED", "true").lower() == "true"
+SOCIAL_INSTAGRAM_ENABLED = os.getenv("SOCIAL_INSTAGRAM_ENABLED", "false").lower() == "true"
+SOCIAL_FACEBOOK_ENABLED  = os.getenv("SOCIAL_FACEBOOK_ENABLED", "false").lower() == "true"
+SOCIAL_TIKTOK_ENABLED    = os.getenv("SOCIAL_TIKTOK_ENABLED", "false").lower() == "true"
+SOCIAL_TWITTER_ENABLED   = os.getenv("SOCIAL_TWITTER_ENABLED", "false").lower() == "true"
+SOCIAL_LINKEDIN_ENABLED  = os.getenv("SOCIAL_LINKEDIN_ENABLED", "false").lower() == "true"
+OFAC_CHECK_ENABLED       = os.getenv("OFAC_CHECK_ENABLED", "true").lower() == "true"
+DRIVE_BACKUP_ENABLED     = os.getenv("DRIVE_BACKUP_ENABLED", "false").lower() == "true"
+SAMPLE_FOLLOWUP_ENABLED  = os.getenv("SAMPLE_FOLLOWUP_ENABLED", "true").lower() == "true"
+REORDER_SEQUENCE_ENABLED = os.getenv("REORDER_SEQUENCE_ENABLED", "true").lower() == "true"
+HEALTH_CHECK_PORT        = int(os.getenv("HEALTH_CHECK_PORT", "8080"))
+
+# ── Social Platform Credentials ───────────────────────────────────────────────
+INSTAGRAM_USERNAME = os.getenv("INSTAGRAM_USERNAME", "")
+INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD", "")
+LINKEDIN_EMAIL     = os.getenv("LINKEDIN_EMAIL", "")
+LINKEDIN_PASSWORD  = os.getenv("LINKEDIN_PASSWORD", "")
+FACEBOOK_PROXY     = os.getenv("FACEBOOK_PROXY", "")
+
 # ── Required vars for startup validation ──────────────────────────────────────
 _REQUIRED = [
     "GEMINI_API_KEY",
@@ -87,4 +121,4 @@ def validate_config() -> None:
         sys.exit(1)
     for d in (LOGS_DIR, PROPOSALS_DIR, DASHBOARD_DIR):
         d.mkdir(exist_ok=True)
-    logging.info("Configuration v2.0 validated OK — %s", COMPANY_NAME)
+    logging.info("Configuration v2.1 validated OK — %s", COMPANY_NAME)

@@ -1,0 +1,57 @@
+{
+  "_comment": "Defines which parts of offering_master.txt are FIXED vs VARIABLE for Gemini personalization",
+  "template_version": "2.1",
+  "sections": {
+    "greeting": {
+      "status": "VARIABLE",
+      "instruction": "Replace {contact_name} with actual buyer name from database. If unknown, use 'Sir/Madam'."
+    },
+    "self_intro": {
+      "status": "FIXED",
+      "content": "My name is Muhammad Yahya, representing PT Cahaya Woodchar International, an Indonesian charcoal export company based in Lampung, Indonesia — with over 8 years of experience supplying premium charcoal to international markets.",
+      "instruction": "NEVER change name, company, or location."
+    },
+    "personalized_hook": {
+      "status": "VARIABLE",
+      "instruction": "Gemini MUST write 2-3 sentences specific to this buyer. Reference: their platform/discovery context, their country/market, their business type. Show you researched them. NEVER use generic phrases like 'I hope this email finds you well'."
+    },
+    "product_list": {
+      "status": "FIXED",
+      "instruction": "Show ALL 5 products with checkmark emoji. Never remove or add products. Format exactly as in master template."
+    },
+    "why_partner": {
+      "status": "SEMI-FIXED",
+      "instruction": "Keep all 6 bullet points. You may REORDER them to put the most relevant first for this buyer. For shisha buyers, put Coconut Shell + competitive pricing first. For restaurant buyers, lead with Halaban + quality certs."
+    },
+    "next_steps": {
+      "status": "FIXED",
+      "instruction": "Do NOT change Next Steps section. It is proven effective."
+    },
+    "website": {
+      "status": "FIXED",
+      "content": "https://indonesiancharcoalsupplier.com",
+      "instruction": "Always include. Never change URL."
+    },
+    "contacts": {
+      "status": "FIXED",
+      "content": {
+        "email": "johanneshaq@indonesiancharcoalsupplier.com",
+        "wa_1": "+62 895 0481 5988",
+        "wa_2": "+62 812 2564 6585",
+        "wa_3": "+62 812 2464 6585"
+      },
+      "instruction": "All 3 WhatsApp numbers MUST appear. Never change any contact info."
+    },
+    "signature": {
+      "status": "FIXED",
+      "content": "Muhammad Yahya\nIndonesian Charcoal Supplier\nPT Cahaya Woodchar International\nLampung, Indonesia",
+      "instruction": "Never change. Never add other names."
+    }
+  },
+  "gemini_persona": "You ARE Muhammad Yahya, COO of PT Cahaya Woodchar International. Write in first person as Muhammad Yahya. Be warm, professional, and knowledgeable about charcoal export.",
+  "visual_separators": "────────────────",
+  "product_emoji": "✅",
+  "max_words": 350,
+  "language": "English",
+  "output_format": {"subject": "string", "body": "string"}
+}

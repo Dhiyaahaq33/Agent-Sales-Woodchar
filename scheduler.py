@@ -1,15 +1,19 @@
-"""APScheduler orchestrator v2 — semua agent terdaftar dengan jadwal PRD v2.
+"""APScheduler orchestrator v2.1 — semua agent terdaftar dengan jadwal PRD v2.1.
 
 Jadwal (WIB / Asia/Jakarta):
   06:30  MarketAgent     — morning briefing + trigger evaluation
+  07:00  SocialAgent     — platform rotation (YouTube/Instagram/FB/TikTok/Twitter/LinkedIn)
   08:00  Scraper + Enrichment
-  09:00  OutreachAgent   — cold email (max 200/day)
+  09:00  OutreachAgent   — cold email (warmup-limited)
   Every 2h MonitorAgent  — inbox classification
   14:00  FollowUpAgent   — touch 2-6
+  15:00  SampleFollowup  — 2kg sample follow-ups
   18:00  ReporterAgent   — daily Telegram summary
   Every 30m SheetsSync   — Google Sheets CRM
   Sunday 03:00 ML retrain + A/B evaluation
+  Sunday 04:00 OFAC refresh
   02:00  DB backup
+  02:30  Drive backup
 """
 import logging
 
@@ -66,6 +70,30 @@ def _weekly_ml_tasks():
     ab_tester.run_weekly_evaluation()
 
 
+def _social_scraper_run():
+    """07:00 — Social media lead discovery (platform rotation)."""
+    from agents.social_agent import SocialAgent
+    SocialAgent().run()
+
+
+def _sample_followup_run():
+    """15:00 — Follow up on sent samples with no feedback after 7 days."""
+    from tools.sample_tracker import SampleFollowupAgent
+    SampleFollowupAgent().run()
+
+
+def _drive_backup_run():
+    """02:30 — Back up crm.db to Google Drive."""
+    from tools.drive_backup import DriveBackup
+    DriveBackup().run()
+
+
+def _ofac_refresh_run():
+    """Sunday 04:00 — Reload OFAC/country risk data."""
+    from tools.country_risk import get_country_risk
+    get_country_risk().run_ofac_refresh()
+
+
 def build_scheduler() -> BlockingScheduler:
     """Register all jobs and return configured scheduler."""
 
@@ -75,6 +103,15 @@ def build_scheduler() -> BlockingScheduler:
         CronTrigger(hour=6, minute=30),
         id="market_intel",
         name="Market Intelligence Agent",
+        replace_existing=True,
+    )
+
+    # 07:00 — Social Media Lead Scraper (v2.1)
+    _scheduler.add_job(
+        _run_safe("SocialAgent", _social_scraper_run),
+        CronTrigger(hour=7, minute=0),
+        id="social_scraper",
+        name="Social Media Scraper",
         replace_existing=True,
     )
 
@@ -114,6 +151,15 @@ def build_scheduler() -> BlockingScheduler:
         replace_existing=True,
     )
 
+    # 15:00 — Sample Follow-up (v2.1)
+    _scheduler.add_job(
+        _run_safe("SampleFollowup", _sample_followup_run),
+        CronTrigger(hour=15, minute=0),
+        id="sample_followup",
+        name="Sample Follow-up Agent",
+        replace_existing=True,
+    )
+
     # 18:00 — Daily reporter
     _scheduler.add_job(
         _run_safe("ReporterAgent", ReporterAgent().run),
@@ -141,7 +187,16 @@ def build_scheduler() -> BlockingScheduler:
         replace_existing=True,
     )
 
-    # 02:00 daily — DB backup
+    # Sunday 04:00 — OFAC/Country Risk refresh (v2.1)
+    _scheduler.add_job(
+        _run_safe("OFACRefresh", _ofac_refresh_run),
+        CronTrigger(day_of_week="sun", hour=4, minute=0),
+        id="ofac_refresh",
+        name="OFAC Country Risk Refresh",
+        replace_existing=True,
+    )
+
+    # 02:00 daily — DB backup (local)
     _scheduler.add_job(
         _run_safe("DatabaseBackup", db.backup_db),
         CronTrigger(hour=2, minute=0),
@@ -150,5 +205,14 @@ def build_scheduler() -> BlockingScheduler:
         replace_existing=True,
     )
 
-    logger.info("Scheduler v2 configured with %d jobs.", len(_scheduler.get_jobs()))
+    # 02:30 daily — Drive backup (v2.1)
+    _scheduler.add_job(
+        _run_safe("DriveBackup", _drive_backup_run),
+        CronTrigger(hour=2, minute=30),
+        id="drive_backup",
+        name="Google Drive Backup",
+        replace_existing=True,
+    )
+
+    logger.info("Scheduler v2.1 configured with %d jobs.", len(_scheduler.get_jobs()))
     return _scheduler

@@ -37,3 +37,15 @@ chromadb
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
 pytz
+
+# ── v2.1: Social Media Scrapers ───────────────────────────────────────────────
+instagrapi           # Instagram scraper (requires dummy account)
+facebook-scraper     # Facebook public pages
+linkedin-api         # LinkedIn (HIGH ban risk — use with caution)
+TikTokApi            # TikTok scraper (requires Playwright)
+snscrape             # Twitter/X scraper (no API key)
+playwright           # Required by TikTokApi
+
+# ── v2.1: Web Server & Utilities ─────────────────────────────────────────────
+flask                # Health check endpoint (GET /health)
+pyshorteners         # Bit.ly link tracking (optional)

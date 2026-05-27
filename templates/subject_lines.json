@@ -1,0 +1,49 @@
+{
+  "_comment": "Subject line pool per market segment for A/B testing. ab_tester.py picks from here.",
+  "segments": {
+    "shisha_hookah": {
+      "A": "Premium Coconut Shell Charcoal from Indonesia — Low Ash, Long Burn",
+      "B": "Coconut Shisha Charcoal | Competitive FOB Price | Indonesia"
+    },
+    "bbq_restaurant": {
+      "A": "Halaban & Hardwood Charcoal for Professional BBQ — Direct Exporter",
+      "B": "High Heat Charcoal for Your Restaurant — Indonesian Supplier"
+    },
+    "general_importer": {
+      "A": "Indonesian Charcoal Export — 5 Product Types, Direct From Producer",
+      "B": "Charcoal Supply Inquiry — PT Cahaya Woodchar, Lampung Indonesia"
+    },
+    "distributor_trader": {
+      "A": "Charcoal Wholesale from Indonesia — Flexible MOQ, FOB/CIF",
+      "B": "Reliable Charcoal Supplier — 8 Years Export Experience"
+    },
+    "japan_korea_premium": {
+      "A": "Binchotan-Style White Charcoal from Indonesia — Direct Export",
+      "B": "Japanese-Style Hardwood Charcoal | Indonesian Producer"
+    },
+    "australia_bbq": {
+      "A": "BBQ Season Ready — Premium Indonesian Charcoal Available Now",
+      "B": "Charcoal for Australian BBQ Market — Direct from Lampung"
+    },
+    "europe_eco": {
+      "A": "Eco-Friendly Charcoal from Indonesia — SGS Certified",
+      "B": "Sustainable Charcoal Supply | Indonesia → Europe | Direct Exporter"
+    },
+    "india_volume": {
+      "A": "Competitive Charcoal Pricing — Direct from Indonesian Producer",
+      "B": "Charcoal Bulk Supply from Indonesia — Flexible MOQ Available"
+    },
+    "social_instagram": {
+      "A": "Noticed Your Charcoal Content — We Export from Indonesia",
+      "B": "Indonesian Charcoal Supplier for Your Business"
+    },
+    "social_linkedin": {
+      "A": "Charcoal Import Opportunity — PT Cahaya Woodchar Indonesia",
+      "B": "Direct from Indonesian Charcoal Producer — Let's Connect"
+    },
+    "social_twitter": {
+      "A": "Re: Your Charcoal Sourcing — We Can Help",
+      "B": "Indonesian Charcoal Available — Reply to Your Tweet"
+    }
+  }
+}

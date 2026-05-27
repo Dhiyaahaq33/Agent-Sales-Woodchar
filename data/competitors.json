@@ -1,0 +1,41 @@
+{
+  "_comment": "5 Indonesian charcoal competitors to monitor on Alibaba. COO must fill Alibaba URLs.",
+  "last_updated": "2026-05-27",
+  "competitors": [
+    {
+      "id": "COMP-001",
+      "name": "FILL_BY_COO",
+      "alibaba_url": "FILL_BY_COO",
+      "known_products": ["coconut shell", "briquette"],
+      "notes": "Add competitor name and Alibaba listing URL"
+    },
+    {
+      "id": "COMP-002",
+      "name": "FILL_BY_COO",
+      "alibaba_url": "FILL_BY_COO",
+      "known_products": ["hardwood lump", "briquette"],
+      "notes": "Add competitor name and Alibaba listing URL"
+    },
+    {
+      "id": "COMP-003",
+      "name": "FILL_BY_COO",
+      "alibaba_url": "FILL_BY_COO",
+      "known_products": ["all types"],
+      "notes": "Add competitor name and Alibaba listing URL"
+    },
+    {
+      "id": "COMP-004",
+      "name": "FILL_BY_COO",
+      "alibaba_url": "FILL_BY_COO",
+      "known_products": ["coconut shell"],
+      "notes": "Add competitor name and Alibaba listing URL"
+    },
+    {
+      "id": "COMP-005",
+      "name": "FILL_BY_COO",
+      "alibaba_url": "FILL_BY_COO",
+      "known_products": ["briquette", "sawdust"],
+      "notes": "Add competitor name and Alibaba listing URL"
+    }
+  ]
+}
