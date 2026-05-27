@@ -1,12 +1,39 @@
+# ── Core Framework ────────────────────────────────────────────────────────────
 crewai
-google-generativeai
+apscheduler
+python-dotenv
+
+# ── LLM Providers ─────────────────────────────────────────────────────────────
+google-genai
+groq
+
+# ── Google APIs ───────────────────────────────────────────────────────────────
 google-auth-oauthlib
 google-api-python-client
+gspread
+
+# ── Scraping ──────────────────────────────────────────────────────────────────
 requests
 beautifulsoup4
 lxml
-apscheduler
-python-dotenv
-reportlab
 fake-useragent
 googlesearch-python
+pytrends
+
+# ── PDF Generation ────────────────────────────────────────────────────────────
+reportlab
+
+# ── ML & Analytics ────────────────────────────────────────────────────────────
+scikit-learn
+pandas
+numpy
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+streamlit
+plotly
+
+# ── Vector Memory (Phase 4) ───────────────────────────────────────────────────
+chromadb
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+pytz

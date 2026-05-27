@@ -2,14 +2,12 @@
 import time
 import json
 import logging
-import google.generativeai as genai
+from google import genai
 import config
 
 logger = logging.getLogger(__name__)
 
-genai.configure(api_key=config.GEMINI_API_KEY)
-_model = genai.GenerativeModel("gemini-1.5-flash")
-
+client = genai.Client(api_key=config.GEMINI_API_KEY)
 
 def call_gemini(prompt: str, expect_json: bool = False, max_retries: int = 3) -> str:
     """Call Gemini and return the text response.
@@ -20,8 +18,12 @@ def call_gemini(prompt: str, expect_json: bool = False, max_retries: int = 3) ->
     last_err = None
     for attempt in range(max_retries):
         try:
-            response = _model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=config.GEMINI_MODEL,
+                contents=prompt,
+            )
             text = response.text.strip()
+            
             if expect_json:
                 # Strip ```json ... ``` wrappers that Gemini sometimes adds
                 if text.startswith("```"):
