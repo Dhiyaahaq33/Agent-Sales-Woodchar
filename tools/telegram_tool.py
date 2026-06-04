@@ -22,6 +22,11 @@ Commands supported (COO sends to bot):
   /match [reply] [lead] — manually match reply to lead
   /warmup             — warmup status
   /health             — system health status
+  --- v3.0 ---
+  /price [id] [qty] [CC] [pay] — FOB price quote (e.g. /price CWI-001 50 JP TT)
+  /forecast           — revenue pipeline forecast
+  /churn              — top churn-risk leads
+  /similar [id/keyword] — vector similarity search
 """
 import json
 import logging
@@ -462,6 +467,114 @@ def _handle_health() -> str:
         return f"❌ Health check failed: {exc}"
 
 
+def _handle_price(arg: str) -> str:
+    """
+    /price [product_id] [qty_mt] [country] [payment]
+    Example: /price CWI-001 50 JP TT
+    """
+    try:
+        parts = arg.split() if arg else []
+        product_id  = parts[0].upper() if len(parts) > 0 else "CWI-001"
+        qty_mt      = float(parts[1]) if len(parts) > 1 else 40.0
+        destination = parts[2].upper() if len(parts) > 2 else "JP"
+        payment     = parts[3].upper() if len(parts) > 3 else "TT"
+
+        from agents.pricing_agent import PricingAgent
+        pa = PricingAgent()
+        result = pa.calculate(product_id, qty_mt, destination, payment)
+        comp = pa.compare_with_competitors(product_id, qty_mt)
+
+        text = pa.format_quotation_text(result)
+        pos = comp.get("position", "unknown")
+        avg = comp.get("avg_competitor_price", 0)
+        diff = comp.get("difference_pct", 0)
+        comp_line = (
+            f"\n📊 Competitor avg: ${avg:.0f}/MT | We are "
+            f"{'ABOVE' if diff > 0 else 'BELOW'} market by {abs(diff):.1f}%"
+        ) if avg else ""
+
+        return f"```\n{text}\n```{comp_line}"
+    except Exception as exc:
+        return (
+            f"❌ Pricing error: {exc}\n\n"
+            f"Usage: /price [product\\_id] [qty\\_mt] [country] [payment]\n"
+            f"Example: /price CWI-001 50 JP TT\n"
+            f"Products: CWI-001 (Halaban) | CWI-002 (Mix) | CWI-003 (Briquette) | "
+            f"CWI-004 (Sawdust) | CWI-005 (Coconut)"
+        )
+
+
+def _handle_forecast() -> str:
+    """/forecast — revenue pipeline forecast."""
+    try:
+        from db.database import get_pipeline_value
+        forecast = get_pipeline_value()
+        pipeline_val = forecast.get("pipeline_value_usd", 0)
+        weighted_val = forecast.get("weighted_forecast_usd", 0)
+
+        # Get closed MTD
+        from datetime import date
+        month_start = date.today().replace(day=1).isoformat()
+        from db.database import get_conn
+        with get_conn() as conn:
+            closed_mtd = conn.execute(
+                "SELECT COALESCE(SUM(deal_value_usd), 0) FROM leads WHERE deal_closed_date >= ? AND status='CLOSED'",
+                (month_start,)
+            ).fetchone()[0]
+
+        return (
+            f"💰 *Revenue Forecast*\n\n"
+            f"Pipeline value: *${pipeline_val:,.0f}*\n"
+            f"Weighted forecast: *${weighted_val:,.0f}*\n"
+            f"Closed MTD: *${closed_mtd:,.0f}*\n\n"
+            f"_Weighted = stage conversion probability applied_"
+        )
+    except Exception as exc:
+        return f"❌ Forecast error: {exc}"
+
+
+def _handle_churn() -> str:
+    """/churn — show top churn-risk leads."""
+    try:
+        from agents.churn_detector import ChurnDetector
+        leads = ChurnDetector().get_churning_leads(threshold=0.5)
+        if not leads:
+            return "✅ No leads at churn risk (>50%) right now."
+        lines = [f"🧊 *Top Churn Risk Leads*\n"]
+        for lead in leads[:8]:
+            company = lead.get("company") or lead.get("company_name", "?")
+            risk = lead.get("churn_risk", 0)
+            icon = "🚨" if risk >= 0.8 else "🔴" if risk >= 0.6 else "⚠️"
+            lines.append(f"{icon} {company} — {risk:.0%}")
+        return "\n".join(lines)
+    except Exception as exc:
+        return f"❌ Churn check failed: {exc}"
+
+
+def _handle_similar(arg: str) -> str:
+    """/similar [lead_id OR keyword] — find similar leads via vector memory."""
+    try:
+        from tools.vector_memory import get_vector_memory
+        vm = get_vector_memory()
+        try:
+            lead_id = int(arg)
+            results = vm.find_similar_leads(lead_id=lead_id, n=5)
+        except ValueError:
+            results = vm.find_similar_leads(query_text=arg, n=5)
+
+        if not results:
+            return f"No similar leads found for: `{arg}`"
+        lines = [f"🔍 *Similar Leads for: {arg}*\n"]
+        for r in results:
+            lines.append(
+                f"  • {r.get('company', '?')} ({r.get('country', '?')}) "
+                f"[{r.get('status', '?')}] — similarity {r.get('similarity', 0):.0%}"
+            )
+        return "\n".join(lines)
+    except Exception as exc:
+        return f"❌ Similarity search failed: {exc}"
+
+
 # ── Command dispatcher ────────────────────────────────────────────────────────
 
 def _dispatch_command(text: str) -> str:
@@ -528,9 +641,18 @@ def _dispatch_command(text: str) -> str:
         return _handle_warmup()
     elif cmd == "/health":
         return _handle_health()
+    # ── v3.0 commands ──────────────────────────────────────────────────────────
+    elif cmd == "/price":
+        return _handle_price(arg)
+    elif cmd == "/forecast":
+        return _handle_forecast()
+    elif cmd == "/churn":
+        return _handle_churn()
+    elif cmd == "/similar":
+        return _handle_similar(arg)
     else:
         return (
-            "🤖 *Cahaya Woodchar Bot v2.1*\n\n"
+            "🤖 *Cahaya Woodchar Bot v3.0*\n\n"
             "*Basic Commands:*\n"
             "/stats — stats hari ini\n"
             "/leads [N] — N leads terbaru\n"
@@ -552,7 +674,12 @@ def _dispatch_command(text: str) -> str:
             "/risk [CC] — country risk (e.g. /risk IN)\n"
             "/match [reply\\_id] [lead\\_id] — manual match\n"
             "/warmup — warmup status\n"
-            "/health — system health"
+            "/health — system health\n\n"
+            "*v3.0 Commands:*\n"
+            "/price [id] [qty] [CC] [pay] — FOB quote\n"
+            "/forecast — revenue pipeline forecast\n"
+            "/churn — top churn-risk leads\n"
+            "/similar [lead\\_id or keyword] — vector search"
         )
 
 

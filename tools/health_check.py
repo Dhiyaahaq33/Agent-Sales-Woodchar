@@ -98,11 +98,19 @@ def create_app():
 
     @app.route("/", methods=["GET"])
     def root():
-        return jsonify({"message": "PT Cahaya Woodchar Export Agent v2.1", "health": "/health"}), 200
+        return jsonify({"message": "PT Cahaya Woodchar Export Agent v3.0", "health": "/health"}), 200
 
     @app.route("/ping", methods=["GET"])
     def ping():
         return jsonify({"pong": True, "timestamp": datetime.now().isoformat(timespec="seconds")}), 200
+
+    # Register email tracking pixel routes (v3.0)
+    try:
+        from tools.email_tracker import EmailTracker
+        EmailTracker.register_flask_routes(app)
+        logger.debug("Email tracking pixel routes registered")
+    except Exception as e:
+        logger.warning("Could not register email tracker routes: %s", e)
 
     return app
 

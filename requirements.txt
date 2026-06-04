@@ -47,5 +47,9 @@ snscrape             # Twitter/X scraper (no API key)
 playwright           # Required by TikTokApi
 
 # ── v2.1: Web Server & Utilities ─────────────────────────────────────────────
-flask                # Health check endpoint (GET /health)
+flask                # Health check endpoint (GET /health) + email pixel tracking
 pyshorteners         # Bit.ly link tracking (optional)
+
+# ── v3.0: Advanced Intelligence ──────────────────────────────────────────────
+sentence-transformers  # Multilingual embeddings for ChromaDB (optional — improves vector search)
+# Note: chromadb already listed above; sentence-transformers is optional but recommended

@@ -98,21 +98,47 @@ def backup_db() -> None:
 
 # ── Leads ──────────────────────────────────────────────────────────────────
 
-def insert_lead(company_name: str, email: str = None, website: str = None,
+def insert_lead(company_name: str = None, email: str = None, website: str = None,
                 country: str = None, contact_name: str = None,
-                industry: str = None, source: str = None) -> int | None:
-    """Insert lead; returns new id or None on duplicate email."""
+                industry: str = None, source: str = None,
+                # v2.1+ aliases and extra fields
+                company: str = None,
+                notes: str = None,
+                score: int = 0,
+                extra_fields: dict = None) -> int | None:
+    """
+    Insert lead; returns new id or None on duplicate email.
+    Accepts both `company_name` (legacy) and `company` (v2.1+).
+    extra_fields: dict of v2.1 social columns to set if columns exist.
+    """
+    # Unify company name
+    canonical_name = company or company_name or ""
     try:
         with get_conn() as conn:
             cur = conn.execute(
                 """INSERT INTO leads
-                   (company_name, contact_name, email, website, country, industry, source)
-                   VALUES (?,?,?,?,?,?,?)""",
-                (company_name, contact_name, email, website, country, industry, source),
+                   (company_name, company, contact_name, email, website,
+                    country, industry, source, notes, score)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (canonical_name, canonical_name, contact_name, email,
+                 website, country, industry, source, notes or "", score),
             )
-            return cur.lastrowid
+            lead_id = cur.lastrowid
+
+            # Set extra v2.1 social fields if columns exist
+            if extra_fields and lead_id:
+                for col, val in extra_fields.items():
+                    try:
+                        conn.execute(
+                            f"UPDATE leads SET {col} = ? WHERE id = ?",
+                            (val, lead_id)
+                        )
+                    except Exception:
+                        pass  # Column may not exist yet
+
+            return lead_id
     except sqlite3.IntegrityError:
-        logger.debug("Duplicate skipped: %s / %s", email, company_name)
+        logger.debug("Duplicate skipped: %s / %s", email, canonical_name)
         return None
 
 
@@ -247,7 +273,8 @@ def get_daily_stats() -> dict:
         ).fetchone()[0]
         stats["interested_today"] = [
             dict(r) for r in conn.execute(
-                """SELECT company_name, country FROM leads
+                """SELECT COALESCE(company, company_name, '') as company, country
+                   FROM leads
                    WHERE classification='INTERESTED' AND DATE(updated_at)=?""",
                 (today,),
             ).fetchall()
@@ -267,3 +294,44 @@ def get_daily_stats() -> dict:
             cls_breakdown[row["classification"]] = row["cnt"]
         stats["classification_breakdown"] = cls_breakdown
         return stats
+
+
+# ── Revenue / v3.0 helpers ─────────────────────────────────────────────
+
+def get_pipeline_value() -> dict:
+    """Return total pipeline value and weighted forecast in USD."""
+    from agents.reporter_agent import STAGE_WEIGHTS, AVG_DEAL_VALUE
+    pipeline_value = 0.0
+    weighted_value = 0.0
+    try:
+        with get_conn() as conn:
+            rows = conn.execute(
+                "SELECT status, COUNT(*) as cnt FROM leads GROUP BY status"
+            ).fetchall()
+        for row in rows:
+            stage = row["status"]
+            count = row["cnt"]
+            if stage == "DEAD":
+                continue
+            avg = AVG_DEAL_VALUE.get(stage, 5_000)
+            weight = STAGE_WEIGHTS.get(stage, 0.05)
+            pipeline_value += count * avg
+            weighted_value += count * avg * weight
+        return {
+            "pipeline_value_usd": round(pipeline_value),
+            "weighted_forecast_usd": round(weighted_value),
+        }
+    except Exception:
+        return {"pipeline_value_usd": 0, "weighted_forecast_usd": 0}
+
+
+def get_lead_by_company(company_name: str) -> dict | None:
+    """Fuzzy match lead by company name."""
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT * FROM leads
+               WHERE company LIKE ? OR company_name LIKE ?
+               ORDER BY score DESC LIMIT 1""",
+            (f"%{company_name}%", f"%{company_name}%")
+        ).fetchone()
+    return dict(row) if row else None

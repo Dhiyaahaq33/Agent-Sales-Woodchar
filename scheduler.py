@@ -1,19 +1,23 @@
-"""APScheduler orchestrator v2.1 — semua agent terdaftar dengan jadwal PRD v2.1.
+"""APScheduler orchestrator v3.0 — 17 jobs.
 
 Jadwal (WIB / Asia/Jakarta):
-  06:30  MarketAgent     — morning briefing + trigger evaluation
-  07:00  SocialAgent     — platform rotation (YouTube/Instagram/FB/TikTok/Twitter/LinkedIn)
-  08:00  Scraper + Enrichment
-  09:00  OutreachAgent   — cold email (warmup-limited)
-  Every 2h MonitorAgent  — inbox classification
-  14:00  FollowUpAgent   — touch 2-6
-  15:00  SampleFollowup  — 2kg sample follow-ups
-  18:00  ReporterAgent   — daily Telegram summary
-  Every 30m SheetsSync   — Google Sheets CRM
-  Sunday 03:00 ML retrain + A/B evaluation
-  Sunday 04:00 OFAC refresh
-  02:00  DB backup
-  02:30  Drive backup
+  06:30  MarketAgent       — morning briefing + trigger evaluation
+  07:00  SocialAgent       — platform rotation (YouTube/Instagram/FB/TikTok/Twitter/LinkedIn)
+  08:00  Scraper + Enrichment (deep v3.0: LLM + OFAC + VectorMemory index)
+  09:00  OutreachAgent     — warmup-limited, send-time-optimized, offering_master
+  Every 2h MonitorAgent   — sentiment analysis + 4-layer matching + urgent routing
+  11:00  ChurnDetector     — daily churn risk scoring + auto-action
+  14:00  FollowUpAgent     — touch 2-6
+  15:00  SampleFollowup    — 2kg sample follow-ups
+  Every 6h CompetitorAgent — Alibaba price monitor + change alerts
+  17:00  ReorderAgent      — 30/60/90-day post-deal reorder sequences
+  18:00  ReporterAgent     — revenue forecast + source attribution + churn alerts
+  Every 30m SheetsSync    — Google Sheets CRM sync
+  Sunday 03:00 WeeklyML   — ML retrain + A/B evaluation
+  Sunday 04:00 OFAC       — country risk data refresh
+  02:00  DB backup (local)
+  02:30  Drive backup (Google Drive)
+  Every 5m HealthLog      — health snapshot to DB
 """
 import logging
 
@@ -92,6 +96,30 @@ def _ofac_refresh_run():
     """Sunday 04:00 — Reload OFAC/country risk data."""
     from tools.country_risk import get_country_risk
     get_country_risk().run_ofac_refresh()
+
+
+def _churn_detector_run():
+    """11:00 — Daily churn risk scoring on all active leads."""
+    from agents.churn_detector import ChurnDetector
+    ChurnDetector().run()
+
+
+def _competitor_monitor_run():
+    """Every 6 hours — Alibaba competitor price scraping + change alerts."""
+    from agents.competitor_agent import CompetitorAgent
+    CompetitorAgent().run()
+
+
+def _reorder_agent_run():
+    """17:00 — Post-deal reorder sequence emails (30/60/90 days)."""
+    from agents.reorder_agent import ReorderAgent
+    ReorderAgent().run()
+
+
+def _health_log_run():
+    """Every 5 min — Health snapshot to DB."""
+    from tools.health_check import log_health_to_db
+    log_health_to_db()
 
 
 def build_scheduler() -> BlockingScheduler:
@@ -214,5 +242,41 @@ def build_scheduler() -> BlockingScheduler:
         replace_existing=True,
     )
 
-    logger.info("Scheduler v2.1 configured with %d jobs.", len(_scheduler.get_jobs()))
+    # 11:00 daily — Churn Detector (v3.0)
+    _scheduler.add_job(
+        _run_safe("ChurnDetector", _churn_detector_run),
+        CronTrigger(hour=11, minute=0),
+        id="churn_detector",
+        name="Churn Risk Detector",
+        replace_existing=True,
+    )
+
+    # Every 6 hours — Competitor Monitor (v3.0)
+    _scheduler.add_job(
+        _run_safe("CompetitorAgent", _competitor_monitor_run),
+        IntervalTrigger(hours=6),
+        id="competitor_monitor",
+        name="Competitor Price Monitor",
+        replace_existing=True,
+    )
+
+    # 17:00 daily — Reorder Agent (v2.1)
+    _scheduler.add_job(
+        _run_safe("ReorderAgent", _reorder_agent_run),
+        CronTrigger(hour=17, minute=0),
+        id="reorder_agent",
+        name="Post-Deal Reorder Agent",
+        replace_existing=True,
+    )
+
+    # Every 5 minutes — Health log snapshot (v3.0)
+    _scheduler.add_job(
+        _run_safe("HealthLog", _health_log_run),
+        IntervalTrigger(minutes=5),
+        id="health_log",
+        name="Health Log Snapshot",
+        replace_existing=True,
+    )
+
+    logger.info("Scheduler v3.0 configured with %d jobs.", len(_scheduler.get_jobs()))
     return _scheduler

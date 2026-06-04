@@ -112,6 +112,17 @@ _REQUIRED = [
 ]
 
 
+# ── v3.0: Advanced Intelligence ───────────────────────────────────────────────
+VECTOR_MEMORY_ENABLED    = os.getenv("VECTOR_MEMORY_ENABLED", "true").lower() == "true"
+EMAIL_TRACKING_ENABLED   = os.getenv("EMAIL_TRACKING_ENABLED", "false").lower() == "true"
+TRACKING_SERVER_URL      = os.getenv("TRACKING_SERVER_URL", "")   # e.g. https://yourserver.ngrok.io
+CHURN_DETECTION_ENABLED  = os.getenv("CHURN_DETECTION_ENABLED", "true").lower() == "true"
+COMPETITOR_MONITOR_ENABLED = os.getenv("COMPETITOR_MONITOR_ENABLED", "true").lower() == "true"
+PRICING_ENGINE_ENABLED   = os.getenv("PRICING_ENGINE_ENABLED", "true").lower() == "true"
+SEND_TIME_OPTIMIZE       = os.getenv("SEND_TIME_OPTIMIZE", "true").lower() == "true"
+REVENUE_FORECAST_ENABLED = os.getenv("REVENUE_FORECAST_ENABLED", "true").lower() == "true"
+
+
 def validate_config() -> None:
     """Exit with error if any required env var is missing."""
     missing = [v for v in _REQUIRED if not globals().get(v)]
@@ -121,4 +132,4 @@ def validate_config() -> None:
         sys.exit(1)
     for d in (LOGS_DIR, PROPOSALS_DIR, DASHBOARD_DIR):
         d.mkdir(exist_ok=True)
-    logging.info("Configuration v2.1 validated OK — %s", COMPANY_NAME)
+    logging.info("Configuration v3.0 validated OK — %s", COMPANY_NAME)

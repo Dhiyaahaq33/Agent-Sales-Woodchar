@@ -106,7 +106,7 @@ def main():
         return
 
     logger.info("=" * 60)
-    logger.info("PT Cahaya Woodchar International — AI Sales Agent v2.1")
+    logger.info("PT Cahaya Woodchar International — AI Sales Agent v3.0")
     logger.info("=" * 60)
 
     # 1. Validate environment variables
@@ -134,6 +134,26 @@ def main():
         from db.migrate_v21 import run_migration as run_migration_v21
         run_migration_v21()
 
+    # 5. Check if migration v3.0 has been run
+    try:
+        with get_conn() as conn:
+            conn.execute("SELECT 1 FROM revenue_forecast LIMIT 1")
+    except Exception:
+        logger.warning("Database v3.0 schema not found — running migration v3.0...")
+        from db.migrate_v3 import run_migration as run_migration_v3
+        run_migration_v3()
+
+    # 5b. Bulk-index existing leads into VectorMemory if enabled
+    if config.VECTOR_MEMORY_ENABLED:
+        try:
+            from tools.vector_memory import get_vector_memory
+            vm = get_vector_memory()
+            if vm.get_stats().get("buyer_profiles", 0) == 0:
+                logger.info("VectorMemory empty — bulk indexing existing leads...")
+                vm.bulk_index_all_leads()
+        except Exception as e:
+            logger.warning("VectorMemory bulk index failed (non-fatal): %s", e)
+
     # 5. Start health check server (background Flask, port 8080)
     try:
         from tools.health_check import start_health_server
@@ -157,8 +177,9 @@ def main():
     # 9. Send startup notification
     job_count = len(build_scheduler().get_jobs())
     send_message(
-        f"🚀 *PT Cahaya Woodchar AI Agent v2.1 STARTED*\n"
+        f"🚀 *PT Cahaya Woodchar AI Agent v3.0 STARTED*\n"
         f"Scheduler aktif — {job_count} jobs registered.\n"
+        f"Intelligence: VectorMemory ✅ SentimentAI ✅ ChurnDetector ✅\n"
         f"Ketik /stats untuk cek status."
     )
 
