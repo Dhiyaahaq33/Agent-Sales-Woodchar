@@ -17,6 +17,9 @@ build/
 # Database & backups
 db/crm.db
 db/crm_backup_*.db
+db/*.db-wal
+db/*.db-shm
+db/chroma/
 
 # Logs & generated files
 logs/
