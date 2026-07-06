@@ -41,9 +41,24 @@ logger = logging.getLogger(__name__)
 
 _API = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}"
 
-# Global agent-pause flag (set by /stop, cleared by /start)
+# Global agent-pause flag — also persisted in system_config table (survives restart)
 _PAUSED = False
 _LAST_UPDATE_ID = 0
+
+
+def _persist_pause(value: bool):
+    """Write pause state to system_config table so it survives restarts."""
+    try:
+        from db.database import get_conn
+        with get_conn() as conn:
+            conn.execute(
+                """INSERT INTO system_config (key, value) VALUES ('paused', ?)
+                   ON CONFLICT(key) DO UPDATE SET value=excluded.value,
+                   updated_at=CURRENT_TIMESTAMP""",
+                ("1" if value else "0",),
+            )
+    except Exception:
+        pass
 
 
 # ── Outbound helpers ──────────────────────────────────────────────────────────
@@ -99,7 +114,18 @@ def send_approval_request(negotiation_id: int, lead_name: str, draft_body: str) 
 
 
 def is_paused() -> bool:
-    """Return True if agents are currently paused via /stop command."""
+    """Return True if agents are paused. Reads DB on first call to survive restarts."""
+    global _PAUSED
+    try:
+        from db.database import get_conn
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT value FROM system_config WHERE key='paused'"
+            ).fetchone()
+        if row:
+            _PAUSED = row["value"] == "1"
+    except Exception:
+        pass
     return _PAUSED
 
 
@@ -601,9 +627,11 @@ def _dispatch_command(text: str) -> str:
         return _handle_product(arg)
     elif cmd == "/stop":
         _PAUSED = True
+        _persist_pause(True)
         return "🛑 *Semua agent di-PAUSE.* Kirim /start untuk resume."
     elif cmd == "/start":
         _PAUSED = False
+        _persist_pause(False)
         return "▶️ *Agent RESUMED.* Pipeline berjalan kembali."
     elif cmd == "/errors":
         return _handle_errors()

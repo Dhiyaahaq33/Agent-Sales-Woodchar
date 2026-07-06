@@ -209,18 +209,38 @@ class MonitorAgent:
                 action = sentiment.get("recommended_action", "WAIT")
                 qty = sentiment.get("quantity_mentioned_mt")
 
+                # Map classification → conversation stage
+                _STAGE_MAP = {
+                    "INTERESTED": "VALUE_PROP",
+                    "NEEDS_INFO": "OBJECTION_HANDLING",
+                    "OOO": "QUALIFICATION",
+                    "NOT_INTERESTED": "CLOSED",
+                    "UNRELATED": "CLOSED",
+                }
+                conv_stage = _STAGE_MAP.get(cls, "QUALIFICATION")
+                if urgency >= 7:
+                    conv_stage = "NEGOTIATING"
+
                 # Update DB
                 db.mark_replied(lead["id"])
                 db.update_lead(
                     lead["id"],
                     classification=cls,
                     status="REPLIED",
+                    conv_stage=conv_stage,
                     notes=f"Reply {cls} | urgency={urgency} | action={action}"
                          + (f" | qty={qty}MT" if qty else ""),
                 )
 
                 # Save sentiment to buyer_memory
                 self._sentiment.save_to_db(lead["id"], 0, sentiment)
+
+                # BANT extraction for warm leads
+                if cls in ("INTERESTED",) and config.CONV_STAGE_TRACKING:
+                    try:
+                        self._extract_and_save_bant(lead["id"], reply.get("body", ""))
+                    except Exception:
+                        pass
 
                 # Store match confidence if not layer 1
                 if match_layer > 1:
@@ -367,6 +387,18 @@ class MonitorAgent:
             vm.upsert_lead(lead)
         except Exception as e:
             logger.debug("VectorMemory store failed: %s", e)
+
+    def _extract_and_save_bant(self, lead_id: int, body: str):
+        """Extract BANT signals from reply body and store in leads.bant_json."""
+        prompt = (
+            "Extract BANT signals from this buyer email reply. "
+            "Return JSON with keys: budget, authority, need, timeline. "
+            "Use null for fields not mentioned. Max 40 words per field.\n\n"
+            f"Reply:\n{body[:1000]}"
+        )
+        raw = llm_call(prompt, expect_json=True)
+        bant = json.loads(raw) if isinstance(raw, str) else raw
+        db.update_lead(lead_id, bant_json=json.dumps(bant))
 
     def _check_sample_feedback(self, lead: dict, body: str):
         """Detect sample receipt/feedback mentions in reply body."""

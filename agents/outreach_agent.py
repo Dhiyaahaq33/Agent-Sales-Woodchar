@@ -32,6 +32,36 @@ logger = logging.getLogger(__name__)
 _CATALOG_PATH = Path(__file__).parent.parent / "data" / "product_catalog.json"
 _OFFERING_MASTER_PATH = Path(__file__).parent.parent / "templates" / "offering_master.txt"
 _SUBJECT_LINES_PATH = Path(__file__).parent.parent / "templates" / "subject_lines.json"
+_FRAMEWORKS_PATH = Path(__file__).parent.parent / "templates" / "email_frameworks.md"
+
+_FRAMEWORK_MAP = {
+    "shisha_hookah": "PAS", "bbq_restaurant": "AIDA", "japan_korea_premium": "QVC",
+    "australia_bbq": "AIDA", "europe_eco": "PAS", "india_volume": "BAB",
+    "distributor_trader": "BAB", "social_linkedin": "QVC", "general_importer": "AIDA",
+}
+
+
+def _load_email_frameworks() -> str:
+    try:
+        return _FRAMEWORKS_PATH.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+_EMAIL_FRAMEWORKS = _load_email_frameworks()
+
+
+def _pick_framework_guide(segment: str) -> str:
+    """Extract the matching framework section from email_frameworks.md."""
+    name = _FRAMEWORK_MAP.get(segment, "AIDA")
+    in_section, lines = False, []
+    for line in _EMAIL_FRAMEWORKS.splitlines():
+        if line.startswith(f"## {name}"):
+            in_section = True
+        elif in_section and line.startswith("## ") and f"## {name}" not in line:
+            break
+        if in_section:
+            lines.append(line)
+    return "\n".join(lines) if lines else f"Use {name} copywriting framework."
 
 
 def _load_catalog_summary() -> str:
@@ -129,14 +159,18 @@ Our products:
 
 {vector_context}
 
+Email copywriting framework to use for the opening hook ({framework_name}):
+{framework_guide}
+
 Rules (STRICTLY FOLLOW):
 1. Keep the Muhammad Yahya signature, WhatsApp numbers, website EXACTLY as in template
 2. ONLY personalize: greeting, first 2 sentences (the opening hook)
 3. Use their company name and country naturally in the hook
-4. Maximum 200 words total
-5. Do NOT mention pricing — invite them to request a quote
-6. Keep visual separators (────────────────) in template
-7. Output ONLY the email body (no subject line, no explanation)"""
+4. Apply the {framework_name} framework structure for the opening 2 sentences
+5. Maximum 200 words total
+6. Do NOT mention pricing — invite them to request a quote
+7. Keep visual separators (────────────────) in template
+8. Output ONLY the email body (no subject line, no explanation)"""
 
 
 class OutreachAgent:
@@ -306,6 +340,9 @@ class OutreachAgent:
         except Exception:
             pass
 
+        framework_name = _FRAMEWORK_MAP.get(segment, "AIDA")
+        framework_guide = _pick_framework_guide(segment)
+
         prompt = _PROMPT_TEMPLATE.format(
             company=company,
             country=country,
@@ -316,6 +353,8 @@ class OutreachAgent:
                      "Professional charcoal export offer email",
             catalog=self._catalog[:1000],
             vector_context=vector_context,
+            framework_name=framework_name,
+            framework_guide=framework_guide[:500],
         )
 
         try:

@@ -16,7 +16,9 @@ _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 _TOUCH_CONFIGS = {
     2: {"file": "email_followup_2.txt", "delay_days": 3},
     3: {"file": "email_followup_3.txt", "delay_days": 5},
-    4: {"file": "email_followup_4.txt", "delay_days": 7},
+    4: {"file": "email_followup_4.txt", "delay_days": 8},
+    5: {"file": "email_followup_5.txt", "delay_days": 12},
+    6: {"file": "email_followup_6.txt", "delay_days": 17},
 }
 
 

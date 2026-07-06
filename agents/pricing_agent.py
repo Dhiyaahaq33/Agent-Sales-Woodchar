@@ -104,12 +104,12 @@ class PricingAgent:
             from db.database import get_conn
             with get_conn() as conn:
                 row = conn.execute(
-                    """SELECT data_value FROM market_intel
-                       WHERE data_type = 'exchange_rate'
+                    """SELECT usd_idr_rate FROM market_intel
+                       WHERE usd_idr_rate IS NOT NULL
                        ORDER BY created_at DESC LIMIT 1"""
                 ).fetchone()
             if row:
-                return float(row["data_value"])
+                return float(row["usd_idr_rate"])
         except Exception:
             pass
         return 16_000.0  # Fallback default

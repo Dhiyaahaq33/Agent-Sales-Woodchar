@@ -143,6 +143,13 @@ def main():
         from db.migrate_v3 import run_migration as run_migration_v3
         run_migration_v3()
 
+    # 6. Migration v3.1 — idempotent, safe to run always
+    try:
+        from db.migrate_v31 import run as run_migration_v31
+        run_migration_v31()
+    except Exception as exc:
+        logger.warning("Migration v3.1 failed (non-fatal): %s", exc)
+
     # 5b. Bulk-index existing leads into VectorMemory if enabled
     if config.VECTOR_MEMORY_ENABLED:
         try:

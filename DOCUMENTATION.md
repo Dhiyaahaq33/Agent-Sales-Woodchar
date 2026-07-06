@@ -5,8 +5,8 @@
 **Company:** PT Cahaya Woodchar International
 **Location:** Lampung Utara, Lampung, Indonesia
 **Website:** https://indonesiancharcoalsupplier.com
-**Current Version:** v3.0 (Advanced Intelligence)
-**Last Updated:** 2026-06-27
+**Current Version:** v3.1 (Conversation Intelligence)
+**Last Updated:** 2026-07-07
 
 ---
 
@@ -872,11 +872,30 @@ pt-ekspor-arang-agent/
 
 ## 11. Version History
 
+### v3.1 (2026-07-07) — Conversation Intelligence
+
+**Bug Fixes:**
+- `db/migrate_v31.py` created: fixes BUG-01 (`negotiation_log`), BUG-02 (`market_intel`), BUG-03 (`system_config`), BUG-04 (`failed_sends`) — all tables now created on startup
+- `agents/followup_agent.py`: touches 5 & 6 now registered in `_TOUCH_CONFIGS` with templates `email_followup_5.txt` / `email_followup_6.txt`
+- `agents/pricing_agent.py`: exchange rate query fixed (`usd_idr_rate` column, correct ORDER BY)
+- `db/database.py`: `get_all_thread_ids()` capped to 90 days (performance); `update_lead()` now has column whitelist to prevent SQL injection via kwargs
+- `tools/telegram_tool.py`: `/stop` and `/start` now persist state to `system_config` table — survives app restart
+
+**New Features:**
+- `templates/email_frameworks.md`: AIDA, PAS, BAB, QVC copywriting guides — framework auto-selected per segment
+- `templates/objection_playbook.md`: LAARC objection handling playbook for price, MOQ, quality, logistics, trust objections
+- `agents/outreach_agent.py`: `_pick_framework_guide()` injects segment-matched framework into LLM prompt
+- `agents/monitor_agent.py`: conversation stage (`conv_stage`) tracked per lead (COLD → QUALIFICATION → VALUE_PROP → NEGOTIATING → CLOSED); BANT extraction for INTERESTED leads
+- `agents/negotiation_agent.py`: objection playbook injected into `_NEGOTIATION_PROMPT`
+- `agents/proposal_agent.py`: Calendly booking link injected if `CALENDLY_URL` is set
+- `config.py`: added `CALENDLY_URL`, `CONV_STAGE_TRACKING`
+- `Dockerfile` + `docker-compose.yml`: Docker deployment support
+- DB schema: `leads.conv_stage`, `leads.bant_json` columns added
+
 ### v3.0.1 (2026-06-27) — Architecture Audit
 - Full codebase gap analysis and security audit (see `GAP_ANALYSIS.md`)
 - Identified 5 active bugs: missing DB tables (`negotiation_log`, `market_intel`), FollowUpAgent touches 5 & 6 never firing, PricingAgent exchange rate query mismatch, bounce detection not wired to MonitorAgent
 - Added documentation files: `DOCUMENTATION.docx`, `README.docx`, `GAP_ANALYSIS.md`, `GAP_ANALYSIS.docx`
-- Pending: `db/migrate_v31.py` to create missing tables and fix schema gaps
 
 ### v3.0 (2026-06-04) — Advanced Intelligence
 - **New tools:** VectorMemory (ChromaDB), SentimentAnalyzer, SendTimeOptimizer, EmailTracker
@@ -970,26 +989,26 @@ pt-ekspor-arang-agent/
 
 ## 15. Known Issues & Pending Fixes
 
-Identified via architecture audit on 2026-06-27. Full details in `GAP_ANALYSIS.md`.
+Last updated: 2026-07-07.
 
 | ID | Severity | File | Description | Status |
 |----|----------|------|-------------|--------|
-| BUG-01 | **Critical** | `agents/followup_agent.py:16–20` | `_TOUCH_CONFIGS` only defines touches 2/3/4. Touches 5 & 6 silently never send. | Pending fix |
-| BUG-02 | **Critical** | `agents/pricing_agent.py:106` | `_get_usd_idr_rate()` queries wrong columns — all quotations use hardcoded 16,000 IDR. | Pending fix |
-| BUG-03 | **Critical** | `db/database.py` | `negotiation_log` table not in schema or any migration. NegotiationAgent crashes on first use. | Pending `migrate_v31.py` |
-| BUG-04 | **Critical** | `db/database.py` | `market_intel` table not in schema or any migration. MarketAgent crashes on first DB write. | Pending `migrate_v31.py` |
-| BUG-05 | **High** | `agents/monitor_agent.py:190` | `is_bounce()` from `deliverability.py` is never called in MonitorAgent. Bounce emails are ignored, degrading Gmail sender reputation. | Pending fix |
-| BUG-06 | **High** | `tools/telegram_tool.py:101` | `_PAUSED` flag is in-memory only. Process restart silently resumes all agents even after `/stop`. | Pending `migrate_v31.py` + code change |
-| BUG-07 | **Medium** | `db/database.py:155` | `update_lead()` builds SQL f-string from raw kwargs dict with no column whitelist — SQL injection surface. | Pending fix |
-| BUG-08 | **Medium** | `tools/gmail_tool.py:85` | `flow.run_local_server()` opens a browser on token refresh — hangs silently on headless VPS. | Pending fix |
+| BUG-01 | **Critical** | `agents/followup_agent.py:16–20` | `_TOUCH_CONFIGS` only defines touches 2/3/4. Touches 5 & 6 silently never send. | **FIXED v3.1** |
+| BUG-02 | **Critical** | `agents/pricing_agent.py:106` | `_get_usd_idr_rate()` queries wrong columns — all quotations use hardcoded 16,000 IDR. | **FIXED v3.1** |
+| BUG-03 | **Critical** | `db/database.py` | `negotiation_log` table not in schema or any migration. NegotiationAgent crashes on first use. | **FIXED v3.1** |
+| BUG-04 | **Critical** | `db/database.py` | `market_intel` table not in schema or any migration. MarketAgent crashes on first DB write. | **FIXED v3.1** |
+| BUG-05 | **High** | `agents/monitor_agent.py:190` | `is_bounce()` from `deliverability.py` is never called in MonitorAgent. Bounce emails are ignored. | Open |
+| BUG-06 | **High** | `tools/telegram_tool.py:101` | `_PAUSED` flag is in-memory only. Process restart silently resumes all agents even after `/stop`. | **FIXED v3.1** |
+| BUG-07 | **Medium** | `db/database.py:155` | `update_lead()` builds SQL f-string from raw kwargs dict with no column whitelist. | **FIXED v3.1** |
+| BUG-08 | **Medium** | `tools/gmail_tool.py:85` | `flow.run_local_server()` opens a browser on token refresh — hangs silently on headless VPS. | Open |
 
-**Quick fixes available today** (each < 30 min): BUG-01, BUG-02, BUG-05, and a partial fix for BUG-07.
+**v3.1 fix summary:** BUG-01, BUG-02, BUG-03, BUG-04, BUG-06, BUG-07 all resolved. BUG-05 and BUG-08 remain.
 
-For the complete gap analysis, performance bottleneck list, and upgrade recommendations sorted by ROI, see:
+For the complete gap analysis see:
 - `GAP_ANALYSIS.md` — full markdown report
 - `GAP_ANALYSIS.docx` — styled Word document
 
 ---
 
-*Documentation generated for PT Cahaya Woodchar International · AI Sales Agent System v3.0*
-*Last updated: 2026-06-27 · Project directory: `D:\BOT\pt-ekspor-arang-agent`*
+*Documentation generated for PT Cahaya Woodchar International · AI Sales Agent System v3.1*
+*Last updated: 2026-07-07 · Project directory: `D:\BOT\pt-ekspor-arang-agent`*

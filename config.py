@@ -121,6 +121,8 @@ COMPETITOR_MONITOR_ENABLED = os.getenv("COMPETITOR_MONITOR_ENABLED", "true").low
 PRICING_ENGINE_ENABLED   = os.getenv("PRICING_ENGINE_ENABLED", "true").lower() == "true"
 SEND_TIME_OPTIMIZE       = os.getenv("SEND_TIME_OPTIMIZE", "true").lower() == "true"
 REVENUE_FORECAST_ENABLED = os.getenv("REVENUE_FORECAST_ENABLED", "true").lower() == "true"
+CALENDLY_URL            = os.getenv("CALENDLY_URL", "")
+CONV_STAGE_TRACKING     = os.getenv("CONV_STAGE_TRACKING", "true").lower() == "true"
 
 
 def validate_config() -> None:

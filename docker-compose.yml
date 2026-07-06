@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  agent:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./db:/app/db
+      - ./logs:/app/logs
+      - ./proposals:/app/proposals
+      - ./data:/app/data
+      - ./credentials.json:/app/credentials.json:ro
+      - ./token.pickle:/app/token.pickle
+    ports:
+      - "8080:8080"   # health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

@@ -1,0 +1,15 @@
+Dear {contact_name},
+
+This will be my last follow-up — I don't want to clutter your inbox.
+
+If Indonesian charcoal supply ever becomes relevant for {company_name} in the future, I hope you'll think of us. We'll keep the door open.
+
+In the meantime, if there's anything specific that made this not the right fit — pricing, lead time, MOQ — I'd genuinely appreciate knowing. It helps us improve.
+
+Wishing you continued success.
+
+────────────────────────────────────────────────
+{sender_name} | COO
+{company}
+🌐 {email}
+📱 WhatsApp: {wa_1} | {wa_2}

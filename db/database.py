@@ -148,7 +148,26 @@ def get_leads_by_status(status: str) -> list[dict]:
         return [dict(r) for r in rows]
 
 
+_ALLOWED_LEAD_COLS = frozenset({
+    "company_name", "company", "contact_name", "email", "website", "country",
+    "industry", "estimated_volume", "score", "source", "status", "classification",
+    "notes", "churn_risk", "send_window_start", "send_window_end", "last_open_at",
+    "open_count", "vector_id", "lifetime_value_est", "country_risk", "sample_status",
+    "touch_2_sent", "touch_3_sent", "touch_4_sent", "touch_5_sent", "touch_6_sent",
+    "conv_stage", "bant_json", "social_platform", "social_bio", "discovery_context",
+    "social_profile_url", "social_followers",
+})
+
+
 def update_lead(lead_id: int, **kwargs) -> None:
+    if not kwargs:
+        return
+    # ponytail: warn + filter unknown cols instead of hard error — avoids breaking
+    # callers that pass migration-added cols not yet in the whitelist.
+    unknown = set(kwargs) - _ALLOWED_LEAD_COLS
+    if unknown:
+        logger.warning("update_lead: unknown columns filtered out: %s", unknown)
+        kwargs = {k: v for k, v in kwargs.items() if k in _ALLOWED_LEAD_COLS}
     if not kwargs:
         return
     cols = ", ".join(f"{k}=?" for k in kwargs)
@@ -189,10 +208,12 @@ def get_leads_for_followup() -> list[dict]:
 
 
 def get_all_thread_ids() -> set:
-    """All gmail_thread_ids we sent, used by Monitor Agent."""
+    """gmail_thread_ids from the last 90 days, used by Monitor Agent."""
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT DISTINCT gmail_thread_id FROM outreach WHERE gmail_thread_id IS NOT NULL"
+            """SELECT DISTINCT gmail_thread_id FROM outreach
+               WHERE gmail_thread_id IS NOT NULL
+               AND sent_at >= datetime('now', '-90 days')"""
         ).fetchall()
         return {r["gmail_thread_id"] for r in rows}
 

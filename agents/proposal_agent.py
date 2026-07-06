@@ -112,11 +112,16 @@ class ProposalAgent:
                 f"Commercial Quotation — {config.COMPANY_NAME} Charcoal Export"
                 if not last else f"Re: {last['subject']}"
             )
+            calendly_line = (
+                f"\n\nWould you like to schedule a call to discuss the details? "
+                f"Book a time here: {config.CALENDLY_URL}"
+                if getattr(config, "CALENDLY_URL", "") else ""
+            )
             body = (
                 f"Dear {lead.get('contact_name') or 'Sir/Madam'},\n\n"
                 f"{cover}\n\n"
                 "Please find our commercial quotation attached. "
-                "Do not hesitate to reach out with any questions.\n\n"
+                f"Do not hesitate to reach out with any questions.{calendly_line}\n\n"
                 f"Best regards,\n{config.SENDER_NAME}\n{config.COMPANY_NAME}"
             )
             try:

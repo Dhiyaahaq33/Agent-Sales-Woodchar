@@ -16,6 +16,17 @@ from tools.telegram_tool import send_approval_request
 logger = logging.getLogger(__name__)
 
 _CATALOG_PATH = Path(config.DATA_DIR) / "product_catalog.json"
+_PLAYBOOK_PATH = Path(__file__).parent.parent / "templates" / "objection_playbook.md"
+
+
+def _load_playbook() -> str:
+    try:
+        return _PLAYBOOK_PATH.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
+_OBJECTION_PLAYBOOK = _load_playbook()
 
 _NEGOTIATION_PROMPT = """You are a professional export sales negotiator for {company},
 an Indonesian charcoal exporter with 8+ years experience.
@@ -33,11 +44,15 @@ Company policies:
 - Discount: Max 5% for orders >50 MT (never reveal this upfront)
 - Lead time: 14-21 days after PO + deposit
 
+Objection handling reference (apply LAARC: Listen→Acknowledge→Ask→Respond→Confirm):
+{objection_playbook}
+
 Instructions:
 - Answer professionally and warmly
 - Provide specific information from catalog
 - Protect pricing — give range, not exact (unless buyer gave budget)
 - Mention free sample offer if appropriate
+- Apply LAARC if buyer raises any objection (price, MOQ, quality, trust)
 - End with a clear next step (e.g., send PI, schedule call, confirm spec sheet)
 - MAX 150 words
 - Do NOT offer discounts unless buyer explicitly requests
@@ -102,6 +117,7 @@ class NegotiationAgent:
             country=lead.get("country", "their country"),
             buyer_question=buyer_question[:1000],
             catalog_summary=catalog,
+            objection_playbook=_OBJECTION_PLAYBOOK[:1200],
         )
 
         try:
