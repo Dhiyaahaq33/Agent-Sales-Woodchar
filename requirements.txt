@@ -2,6 +2,7 @@
 crewai
 apscheduler
 python-dotenv
+openai
 
 # ── LLM Providers ─────────────────────────────────────────────────────────────
 google-genai

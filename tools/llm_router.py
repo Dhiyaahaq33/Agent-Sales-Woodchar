@@ -1,10 +1,11 @@
-"""LLM Router — Gemini (primary) → Groq (fallback) dengan auto-switching.
+"""LLM Router — Gemini → Groq → NVIDIA dengan auto-switching.
 
 Semua agen harus memanggil llm_router.call() bukan call_gemini() langsung.
 Routing logic:
   1. Coba Gemini 2.0 Flash (15 RPM free)
   2. Jika 429/error → switch ke Groq llama-3.3-70b (30 RPM free)
-  3. Jika Groq juga fail → exponential backoff lalu retry Gemini
+  3. Jika Groq juga fail → switch ke NVIDIA Nemotron-49B (jika NVIDIA_API_KEY di-set)
+  4. Jika semua fail → exponential backoff lalu RuntimeError
 """
 import json
 import logging
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 # ── Lazy-init clients ─────────────────────────────────────────────────────────
 _gemini_client = None
 _groq_client   = None
+_nvidia_client = None
 
 
 def _get_gemini():
@@ -35,6 +37,19 @@ def _get_groq():
         from groq import Groq
         _groq_client = Groq(api_key=config.GROQ_API_KEY)
     return _groq_client
+
+
+def _get_nvidia():
+    global _nvidia_client
+    if _nvidia_client is None:
+        if not config.NVIDIA_API_KEY:
+            raise RuntimeError("NVIDIA_API_KEY not set — cannot use NVIDIA fallback.")
+        from openai import OpenAI
+        _nvidia_client = OpenAI(
+            base_url="https://integrate.api.nvidia.com/v1",
+            api_key=config.NVIDIA_API_KEY,
+        )
+    return _nvidia_client
 
 
 # ── Internal callers ──────────────────────────────────────────────────────────
@@ -61,6 +76,21 @@ def _call_groq_raw(prompt: str) -> str:
     return completion.choices[0].message.content.strip()
 
 
+def _call_nvidia_raw(prompt: str) -> str:
+    """Call NVIDIA Nemotron-49B via OpenAI-compatible endpoint."""
+    client = _get_nvidia()
+    completion = client.chat.completions.create(
+        model=config.NVIDIA_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.6,
+        top_p=0.95,
+        max_tokens=4096,
+        frequency_penalty=0,
+        presence_penalty=0,
+    )
+    return completion.choices[0].message.content.strip()
+
+
 def _strip_json_fences(text: str) -> str:
     """Remove ```json ... ``` wrappers Gemini/Groq sometimes add."""
     if text.startswith("```"):
@@ -75,7 +105,7 @@ def _strip_json_fences(text: str) -> str:
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def call(prompt: str, expect_json: bool = False, max_retries: int = 3) -> str:
-    """Route LLM call: Gemini → Groq fallback → exponential backoff.
+    """Route LLM call: Gemini → Groq → NVIDIA → exponential backoff.
 
     Args:
         prompt: Full prompt string.
@@ -91,6 +121,7 @@ def call(prompt: str, expect_json: bool = False, max_retries: int = 3) -> str:
     providers = [
         ("Gemini", _call_gemini_raw),
         ("Groq",   _call_groq_raw),
+        ("NVIDIA", _call_nvidia_raw),
     ]
 
     last_err = None
