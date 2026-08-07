@@ -1,4 +1,4 @@
-"""
+﻿"""
 tools/email_tracker.py — Email Open & Click Tracking
 PT Cahaya Woodchar International — v3.0
 
@@ -21,7 +21,7 @@ Usage:
   from tools.email_tracker import EmailTracker
   tracker = EmailTracker()
   pixel_id, modified_body = tracker.inject_tracking(body, outreach_id=42)
-  short_url = tracker.shorten_url("https://indonesiancharcoalsupplier.com")
+  short_url = tracker.shorten_url("https://cahayawoodchar.com")
 """
 
 import hashlib
@@ -245,7 +245,7 @@ class EmailTracker:
         Only replaces our company website and catalog links.
         """
         import re
-        company_url = os.getenv("COMPANY_WEBSITE", "https://indonesiancharcoalsupplier.com")
+        company_url = os.getenv("COMPANY_WEBSITE", "https://cahayawoodchar.com")
         if company_url in body and self.bitly_token:
             short = self.shorten_url(company_url, title=f"Outreach {outreach_id}")
             body = body.replace(company_url, short)

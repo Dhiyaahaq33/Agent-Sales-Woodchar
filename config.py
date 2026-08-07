@@ -1,4 +1,4 @@
-"""Configuration v2.1 — loads all .env variables with startup validation.
+﻿"""Configuration v2.1 — loads all .env variables with startup validation.
 
 PT Cahaya Woodchar International — AI Sales Agent System
 """
@@ -23,8 +23,11 @@ GEMINI_API_KEY  = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL    = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 GROQ_API_KEY    = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL      = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-NVIDIA_API_KEY  = os.getenv("NVIDIA_API_KEY", "")
-NVIDIA_MODEL    = os.getenv("NVIDIA_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1")
+NVIDIA_API_KEY       = os.getenv("NVIDIA_API_KEY", "")
+NVIDIA_MODEL         = os.getenv("NVIDIA_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1.5")
+NVIDIA_MODEL_FAST    = os.getenv("NVIDIA_MODEL_FAST", "nvidia/nvidia-nemotron-nano-9b-v2")
+NVIDIA_EMBED_API_KEY = os.getenv("NVIDIA_EMBED_API_KEY", "")
+NVIDIA_EMBED_MODEL   = os.getenv("NVIDIA_EMBED_MODEL", "nvidia/llama-nemotron-embed-1b-v2")
 
 # ── Gmail ─────────────────────────────────────────────────────────────────────
 GMAIL_ADDRESS          = os.getenv("GMAIL_ADDRESS", "")
@@ -40,7 +43,7 @@ TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
 # ── Company ───────────────────────────────────────────────────────────────────
 COMPANY_NAME     = os.getenv("COMPANY_NAME", "PT Cahaya Woodchar International")
 COMPANY_EMAIL    = os.getenv("COMPANY_EMAIL", "johanneshaq@indonesiancharcoalsupplier.com")
-COMPANY_WEBSITE  = os.getenv("COMPANY_WEBSITE", "https://indonesiancharcoalsupplier.com")
+COMPANY_WEBSITE  = os.getenv("COMPANY_WEBSITE", "https://cahayawoodchar.com")
 SENDER_NAME      = os.getenv("SENDER_NAME", "Muhammad Yahya")
 COO_NAME         = os.getenv("COO_NAME", "Muhammad Yahya")
 COO_EMAIL        = os.getenv("COO_EMAIL", COMPANY_EMAIL)
@@ -125,6 +128,7 @@ SEND_TIME_OPTIMIZE       = os.getenv("SEND_TIME_OPTIMIZE", "true").lower() == "t
 REVENUE_FORECAST_ENABLED = os.getenv("REVENUE_FORECAST_ENABLED", "true").lower() == "true"
 CALENDLY_URL            = os.getenv("CALENDLY_URL", "")
 CONV_STAGE_TRACKING     = os.getenv("CONV_STAGE_TRACKING", "true").lower() == "true"
+SPREADSHEET_ID          = os.getenv("SPREADSHEET_ID", "")
 
 
 def validate_config() -> None:

@@ -1,4 +1,4 @@
-"""Google Sheets CRM Sync v2 — sinkronisasi SQLite ke Google Sheets setiap 30 menit.
+﻿"""Google Sheets CRM Sync v2 — sinkronisasi SQLite ke Google Sheets setiap 30 menit.
 
 Sheets yang dibuat:
   1. Leads Pipeline
@@ -27,38 +27,39 @@ except ImportError:
 
 
 def _get_client():
-    """Return authenticated gspread client using existing OAuth credentials."""
+    """Return authenticated gspread client using shared token.pickle from Gmail OAuth."""
     if not _GSPREAD_OK:
         raise RuntimeError("gspread not installed. Run: pip install gspread")
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive",
-    ]
     try:
         import pickle
         from pathlib import Path
         from google.auth.transport.requests import Request
         token_path = Path("token.pickle")
-        creds = None
-        if token_path.exists():
-            with open(token_path, "rb") as f:
-                creds = pickle.load(f)
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-        return gspread.authorize(creds)
+        if not token_path.exists():
+            raise RuntimeError(
+                "token.pickle not found. Run: "
+                "python -c \"from tools.gmail_tool import get_gmail_service; get_gmail_service()\""
+            )
+        with open(token_path, "rb") as f:
+            creds = pickle.load(f)
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        return gspread.Client(auth=creds)
+    except RuntimeError:
+        raise
     except Exception as exc:
         raise RuntimeError(f"Google Sheets auth failed: {exc}") from exc
 
 
 def _get_or_create_spreadsheet(client):
-    """Return existing spreadsheet or create new one."""
+    """Open spreadsheet by ID (env var) or fall back to create by name."""
+    if config.SPREADSHEET_ID:
+        return client.open_by_key(config.SPREADSHEET_ID)
     try:
         return client.open(_SPREADSHEET_NAME)
     except gspread.SpreadsheetNotFound:
         logger.info("Creating new spreadsheet: %s", _SPREADSHEET_NAME)
         ss = client.create(_SPREADSHEET_NAME)
-        # Share with the Gmail account
         ss.share(config.GMAIL_ADDRESS, perm_type="user", role="writer")
         return ss
 

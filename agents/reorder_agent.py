@@ -1,4 +1,4 @@
-"""
+﻿"""
 agents/reorder_agent.py — Post-Deal Reorder Sequence Agent
 PT Cahaya Woodchar International — PRD v2.1
 
@@ -49,7 +49,7 @@ REORDER_TOUCHPOINTS = [
 COMPANY_SIGNATURE = """
 ────────────────
 
-🌐 https://indonesiancharcoalsupplier.com
+🌐 https://cahayawoodchar.com
 📱 WhatsApp: +62 895 0481 5988 | +62 812 2564 6585 | +62 812 2464 6585
 📧 johanneshaq@indonesiancharcoalsupplier.com
 

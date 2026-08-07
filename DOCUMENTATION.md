@@ -1,12 +1,12 @@
-# PT Cahaya Woodchar International — AI Sales Agent System
+﻿# PT Cahaya Woodchar International — AI Sales Agent System
 ## Technical Documentation v3.0
 
 **Project:** `pt-ekspor-arang-agent`
 **Company:** PT Cahaya Woodchar International
 **Location:** Lampung Utara, Lampung, Indonesia
-**Website:** https://indonesiancharcoalsupplier.com
+**Website:** https://cahayawoodchar.com
 **Current Version:** v3.1 (Conversation Intelligence)
-**Last Updated:** 2026-07-07
+**Last Updated:** 2026-07-13
 
 ---
 
@@ -623,7 +623,7 @@ All settings are loaded from `.env` via `python-dotenv`. Run `python main.py --c
 | `COMPANY_EMAIL` | `johanneshaq@indonesiancharcoalsupplier.com` |
 | `SENDER_NAME` | `Muhammad Yahya` |
 | `COO_NAME` | `Muhammad Yahya` |
-| `COMPANY_WEBSITE` | `https://indonesiancharcoalsupplier.com` |
+| `COMPANY_WEBSITE` | `https://cahayawoodchar.com` |
 | `COMPANY_LOCATION` | `Lampung Utara, Lampung, Indonesia` |
 | `WA_NUMBER_1/2/3` | WhatsApp contact numbers |
 
@@ -872,6 +872,12 @@ pt-ekspor-arang-agent/
 
 ## 11. Version History
 
+### v3.2 (2026-07-13) — Hotfix & Config Update
+- Website updated to https://cahayawoodchar.com (23 files)
+- Gmail API libraries installed (google-api-python-client, google-auth-oauthlib, gspread)
+- Telegram bot: graceful degradation when token invalid — no longer spam-retries
+- BUG-08 and BUG-09 closed
+
 ### v3.1 (2026-07-07) — Conversation Intelligence
 
 **Bug Fixes:**
@@ -989,7 +995,7 @@ pt-ekspor-arang-agent/
 
 ## 15. Known Issues & Pending Fixes
 
-Last updated: 2026-07-07.
+Last updated: 2026-07-13.
 
 | ID | Severity | File | Description | Status |
 |----|----------|------|-------------|--------|
@@ -997,12 +1003,14 @@ Last updated: 2026-07-07.
 | BUG-02 | **Critical** | `agents/pricing_agent.py:106` | `_get_usd_idr_rate()` queries wrong columns — all quotations use hardcoded 16,000 IDR. | **FIXED v3.1** |
 | BUG-03 | **Critical** | `db/database.py` | `negotiation_log` table not in schema or any migration. NegotiationAgent crashes on first use. | **FIXED v3.1** |
 | BUG-04 | **Critical** | `db/database.py` | `market_intel` table not in schema or any migration. MarketAgent crashes on first DB write. | **FIXED v3.1** |
-| BUG-05 | **High** | `agents/monitor_agent.py:190` | `is_bounce()` from `deliverability.py` is never called in MonitorAgent. Bounce emails are ignored. | Open |
+| BUG-05 | **High** | `agents/monitor_agent.py:190` | `is_bounce()` from `deliverability.py` is never called in MonitorAgent. Bounce emails are ignored. | Open — deferred |
 | BUG-06 | **High** | `tools/telegram_tool.py:101` | `_PAUSED` flag is in-memory only. Process restart silently resumes all agents even after `/stop`. | **FIXED v3.1** |
 | BUG-07 | **Medium** | `db/database.py:155` | `update_lead()` builds SQL f-string from raw kwargs dict with no column whitelist. | **FIXED v3.1** |
-| BUG-08 | **Medium** | `tools/gmail_tool.py:85` | `flow.run_local_server()` opens a browser on token refresh — hangs silently on headless VPS. | Open |
+| BUG-08 | **Medium** | `tools/gmail_tool.py:85` | `flow.run_local_server()` opens a browser on token refresh — hangs silently on headless VPS. | **FIXED v3.2** — library installed, OAuth needed once |
+| BUG-09 | **Low** | `tools/telegram_tool.py` | Invalid bot token causes infinite retry loop in background thread, spamming logs. | **FIXED v3.2** — graceful degradation added |
+| BUG-10 | **Low** | `main.py` | Scheduler registers all 17 jobs twice (34 total) on startup. | Known — skip |
 
-**v3.1 fix summary:** BUG-01, BUG-02, BUG-03, BUG-04, BUG-06, BUG-07 all resolved. BUG-05 and BUG-08 remain.
+**v3.2 fix summary:** BUG-08, BUG-09 resolved. Website updated to cahayawoodchar.com. Gmail API packages installed. BUG-05 and BUG-10 remain.
 
 For the complete gap analysis see:
 - `GAP_ANALYSIS.md` — full markdown report

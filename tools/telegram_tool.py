@@ -741,7 +741,23 @@ def _poll_commands():
 
 
 def start_command_listener():
-    """Start the Telegram command listener in a daemon thread."""
+    """Start the Telegram command listener in a daemon thread.
+    Skips silently if token is missing or invalid (401).
+    """
+    if not config.TELEGRAM_BOT_TOKEN:
+        logger.warning("TELEGRAM_BOT_TOKEN not set — Telegram disabled.")
+        return
+    try:
+        resp = requests.get(f"{_API}/getMe", timeout=10)
+        if resp.status_code == 401:
+            logger.warning(
+                "Telegram token invalid (401) — bot disabled. "
+                "Go to @BotFather -> /mybots -> API Token -> Revoke, then update TELEGRAM_BOT_TOKEN in .env"
+            )
+            return
+    except Exception as exc:
+        logger.warning("Telegram connection check failed: %s — continuing without bot.", exc)
+        return
     t = threading.Thread(target=_poll_commands, daemon=True, name="TelegramListener")
     t.start()
     logger.info("Telegram command listener thread started.")

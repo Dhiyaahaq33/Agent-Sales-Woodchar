@@ -24,11 +24,35 @@ except Exception:
         )
 
 
+def _get_browser_html(url: str, timeout: int = 20) -> str | None:
+    """Fallback fetch via headless Chromium (Playwright) — bypasses basic bot-detection
+    (403/405 from plain requests) that blocks non-browser User-Agents."""
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(user_agent=_random_ua())
+            page.goto(url, timeout=timeout * 1000, wait_until="domcontentloaded")
+            html = page.content()
+            browser.close()
+            return html
+    except Exception as exc:
+        logger.debug("Playwright fallback failed for %s: %s", url, exc)
+        return None
+
+
 def _get(url: str, timeout: int = 12) -> BeautifulSoup | None:
-    """Rate-limited GET with rotating User-Agent. Returns soup or None."""
+    """Rate-limited GET with rotating User-Agent. Falls back to headless browser
+    on 403/405 (bot-detection block). Returns soup or None."""
     time.sleep(random.uniform(config.SCRAPER_DELAY_MIN, config.SCRAPER_DELAY_MAX))
     try:
         resp = requests.get(url, headers={"User-Agent": _random_ua()}, timeout=timeout)
+        if resp.status_code in (403, 405):
+            logger.info("Blocked (%d) on %s — retrying via headless browser...", resp.status_code, url)
+            html = _get_browser_html(url)
+            if html:
+                return BeautifulSoup(html, "lxml")
+            return None
         resp.raise_for_status()
         return BeautifulSoup(resp.text, "lxml")
     except Exception as exc:

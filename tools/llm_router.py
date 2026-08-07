@@ -77,18 +77,33 @@ def _call_groq_raw(prompt: str) -> str:
 
 
 def _call_nvidia_raw(prompt: str) -> str:
-    """Call NVIDIA Nemotron-49B via OpenAI-compatible endpoint."""
+    """Call NVIDIA NIM via OpenAI-compatible endpoint.
+    Tries the primary model first, then the fast/small model if that times out
+    (large NIM models can have slow cold-starts on shared free-tier infra).
+    """
     client = _get_nvidia()
-    completion = client.chat.completions.create(
-        model=config.NVIDIA_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.6,
-        top_p=0.95,
-        max_tokens=4096,
-        frequency_penalty=0,
-        presence_penalty=0,
-    )
-    return completion.choices[0].message.content.strip()
+    models_to_try = [config.NVIDIA_MODEL]
+    if config.NVIDIA_MODEL_FAST and config.NVIDIA_MODEL_FAST != config.NVIDIA_MODEL:
+        models_to_try.append(config.NVIDIA_MODEL_FAST)
+
+    last_err = None
+    for model in models_to_try:
+        try:
+            completion = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.15,
+                top_p=1.0,
+                max_tokens=2048,
+                frequency_penalty=0,
+                presence_penalty=0,
+                timeout=30,
+            )
+            return completion.choices[0].message.content.strip()
+        except Exception as exc:
+            last_err = exc
+            logger.warning("NVIDIA model %s failed: %s — trying next", model, exc)
+    raise last_err
 
 
 def _strip_json_fences(text: str) -> str:
@@ -118,14 +133,19 @@ def call(prompt: str, expect_json: bool = False, max_retries: int = 3) -> str:
     Raises:
         RuntimeError: If all providers and retries are exhausted.
     """
-    providers = [
-        ("Gemini", _call_gemini_raw),
-        ("Groq",   _call_groq_raw),
-        ("NVIDIA", _call_nvidia_raw),
-    ]
+    # Skip providers whose API key is not configured
+    providers = []
+    if config.GEMINI_API_KEY:
+        providers.append(("Gemini", _call_gemini_raw))
+    if config.GROQ_API_KEY:
+        providers.append(("Groq", _call_groq_raw))
+    if config.NVIDIA_API_KEY:
+        providers.append(("NVIDIA", _call_nvidia_raw))
+
+    if not providers:
+        raise RuntimeError("No LLM provider configured — set at least GEMINI_API_KEY in .env")
 
     last_err = None
-    attempt  = 0
 
     for provider_name, provider_fn in providers:
         for retry in range(max_retries):
@@ -136,25 +156,23 @@ def call(prompt: str, expect_json: bool = False, max_retries: int = 3) -> str:
                     text = _strip_json_fences(text)
                     json.loads(text)  # validate
 
-                if provider_name != "Gemini":
-                    logger.info("LLM routed to %s (Gemini unavailable)", provider_name)
+                if provider_name != providers[0][0]:
+                    logger.info("LLM routed to %s (primary unavailable)", provider_name)
 
                 return text
 
             except Exception as exc:
                 last_err = exc
                 err_str  = str(exc).lower()
-                is_rate_limit = "429" in err_str or "rate" in err_str or "limit" in err_str
+                is_rate_limit = "429" in err_str or "rate" in err_str or "quota" in err_str
 
                 if is_rate_limit:
-                    # Rate-limit: switch provider immediately
                     logger.warning(
                         "%s rate-limited (attempt %d) — switching provider: %s",
                         provider_name, retry + 1, exc,
                     )
-                    break  # try next provider
+                    break  # skip to next provider immediately
                 else:
-                    # Other error: exponential backoff within same provider
                     wait = 2 ** retry
                     logger.warning(
                         "%s error (attempt %d/%d): %s — retry in %ds",
@@ -162,8 +180,6 @@ def call(prompt: str, expect_json: bool = False, max_retries: int = 3) -> str:
                     )
                     if retry < max_retries - 1:
                         time.sleep(wait)
-                    attempt += 1
 
-    # All providers exhausted
     logger.error("All LLM providers failed. Last error: %s", last_err)
     raise RuntimeError(f"All LLM providers unavailable: {last_err}") from last_err
