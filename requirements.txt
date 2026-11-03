@@ -54,3 +54,7 @@ pyshorteners         # Bit.ly link tracking (optional)
 # ── v3.0: Advanced Intelligence ──────────────────────────────────────────────
 sentence-transformers  # Multilingual embeddings for ChromaDB (optional — improves vector search)
 # Note: chromadb already listed above; sentence-transformers is optional but recommended
+
+# ── tools/gmaps_list_scraper.py + tools/clean_new_leads.py ──────────────────
+phonenumbers          # phone -> country lookup for scraped leads
+pycountry              # ISO country name normalization

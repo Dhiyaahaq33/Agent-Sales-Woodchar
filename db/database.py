@@ -155,7 +155,8 @@ _ALLOWED_LEAD_COLS = frozenset({
     "open_count", "vector_id", "lifetime_value_est", "country_risk", "sample_status",
     "touch_2_sent", "touch_3_sent", "touch_4_sent", "touch_5_sent", "touch_6_sent",
     "conv_stage", "bant_json", "social_platform", "social_bio", "discovery_context",
-    "social_profile_url", "social_followers",
+    "social_profile_url", "social_followers", "phone", "whatsapp", "gmaps_url",
+    "gmaps_rating",
 })
 
 
